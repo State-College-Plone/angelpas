@@ -1,3 +1,4 @@
+from persistent.dict import PersistentDict
 import inspect
 import logging
 import re
@@ -13,11 +14,14 @@ from Products.WebServerAuth.utils import wwwDirectory
 
 # Keys for storing config:
 stripDomainNamesKey = 'strip_domain_names'
+stripWindowsDomainKey = 'strip_windows_domain'
 usernameHeaderKey = 'username_header'
 authenticateEverybodyKey = 'authenticate_everybody'
 useCustomRedirectionKey = 'use_custom_redirection'
 challengePatternKey = 'challenge_pattern'
 challengeReplacementKey = 'challenge_replacement'
+cookieCheckEnabledKey = 'cookie_check_enabled'
+cookieNameKey = 'cookie_name'
 
 # Key for PAS extraction dict:
 usernameKey = 'apache_username'
@@ -28,6 +32,9 @@ _configDefaults = {
         # other federated auth systems:
         stripDomainNamesKey: True,
         
+        # For Active Directory:
+        stripWindowsDomainKey: False,
+        
         # IISCosign insists on using HTTP_REMOTE_USER instead of
         # HTTP_X_REMOTE_USER:
         usernameHeaderKey: defaultUsernameHeader,
@@ -35,12 +42,18 @@ _configDefaults = {
         authenticateEverybodyKey: True
     }
 _configDefaults1_1 = {
-        # Config defaults new in version 1.1:
+        # Config defaults new in version 1.1, when we migrated to a config
+        # property:
         useCustomRedirectionKey: False,
         challengePatternKey: re.compile(r'http://example\.com/(.*)'),
         challengeReplacementKey: r'https://secure.example.com/some-site/\1'
     }
 _configDefaults.update(_configDefaults1_1)
+_configDefaults1_5 = {
+        cookieNameKey: 'wsa_should_auth',
+        cookieCheckEnabledKey: False
+    }
+_configDefaults.update(_configDefaults1_5)
 
 _defaultChallengePattern = re.compile('http://(.*)')
 _defaultChallengeReplacement = r'https://\1'
@@ -165,6 +178,14 @@ class MultiPlugin(BasePlugin):
           {'apache_username': 'foobar'}
     
         """
+        
+        # Do not extract credentials if we are configured to expect a cookie
+        # but it is not found.
+        if self.config[cookieCheckEnabledKey]:
+            cookieName = self.config[cookieNameKey]
+            if cookieName and cookieName not in request.cookies:
+                return None
+        
         login = request.environ.get(self.config[usernameHeaderKey])
         if not login:
             return None
@@ -176,19 +197,35 @@ class MultiPlugin(BasePlugin):
     security.declarePrivate('_normalizedLoginName')
     def _normalizedLoginName(self, login):
         """Given a raw login name, return it modified according to the "Strip domain names from usernames" preference."""
-        if login is not None and self.config[stripDomainNamesKey] and '@' in login:
-            # With some setups, the login name is returned as 'user123@some.domain.name'.
-            login = login.split('@', 1)[0]
+        if login is not None:
+            if self.config[stripDomainNamesKey] and '@' in login:
+                # With some setups, the login name is returned as 'user123@some.domain.name'.
+                login = login.split('@', 1)[0]
+            elif self.config[stripWindowsDomainKey] and '\\' in login:
+                # Active Directory user expressions have exactly 1 backslash.
+                login = login.split('\\', 1)[1]
         return login
     
     @property
     def config(self):
         """Return the configuration mapping, in the latest format."""
-        if not hasattr(self, '_config'):  # we have a pre-1.1 config to upgrade
+        # Upgrade config to version 1.1 format:
+        if not hasattr(self, '_config'):
             self._config = self.__dict__['config']  # sidestep descriptor
             del self.__dict__['config']
             self._config.update(_configDefaults1_1)
+        
+        # Upgrade to 1.4 format:
+        if stripWindowsDomainKey not in self._config:
+            self._config[stripWindowsDomainKey] = _configDefaults[stripWindowsDomainKey]
+        
+        # Upgrade to 1.5 format:
+        if not isinstance(self._config, PersistentDict):
+            self._config = PersistentDict(self._config)
+            self._config.update(_configDefaults1_5)
+        
         return self._config
+    
     
     ## ZMI crap: ############################
     
@@ -197,7 +234,7 @@ class MultiPlugin(BasePlugin):
 
         self._setId(id)
         self.title = title
-        self._config = _configDefaults
+        self._config = PersistentDict(_configDefaults)
 
     # A method to return the configuration page:
     security.declareProtected(ManageUsers, 'manage_config')
@@ -210,20 +247,19 @@ class MultiPlugin(BasePlugin):
     security.declareProtected(ManageUsers, 'configForView')
     def configForView(self):
         """Return a mapping of my configuration values, for use in a page template."""
-        ret = self.config
+        ret = dict(self.config)
         ret['challenge_pattern_uncompiled'] = ret['challenge_pattern'].pattern
         return ret
     
     security.declareProtected(ManageUsers, 'manage_changeConfig')
     def manage_changeConfig(self, REQUEST=None):
         """Update my configuration based on form data."""
-        for key in [stripDomainNamesKey, authenticateEverybodyKey, useCustomRedirectionKey]:
+        for key in [stripDomainNamesKey, stripWindowsDomainKey, authenticateEverybodyKey, useCustomRedirectionKey, cookieCheckEnabledKey]:
             self.config[key] = REQUEST.form.get(key) == '1'  # Don't raise an exception; unchecked checkboxes don't get submitted.
-        for key in [usernameHeaderKey, challengeReplacementKey]:
+        for key in [usernameHeaderKey, challengeReplacementKey, cookieNameKey]:
             self.config[key] = REQUEST.form[key]
         self.config[challengePatternKey] = re.compile(REQUEST.form[challengePatternKey])
         
-        self._config = self._config  # Makes ZODB know something changed.
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
 
 

@@ -7,6 +7,9 @@ from Products.WebServerAuth.plugin import MultiPlugin
 
 userId = 'fred'
 
+PloneTestCase.installProduct('WebServerAuth')
+PloneTestCase.setupPloneSite(products=['WebServerAuth'])
+
 
 class WebServerAuthTestCase(PloneTestCase.PloneTestCase):
     def _acl_users(self):
@@ -37,6 +40,3 @@ class MockRequestTestCase(WebServerAuthTestCase):
         # Rig the REQUEST that looks like we traversed to the root of the Plone site:
         self.old_request = self.app.REQUEST
         self.app.REQUEST = getMockRequest()
-    
-    def beforeTearDown(self):
-        self.app.REQUEST = self.old_request

@@ -6,14 +6,14 @@
 
 <form tal:define="config context/configForView" method="post" action="manage_changeConfig">
     <fieldset style="margin: .5em 0 0 0; padding: .5em; border: none">
-        <legend>Make Plone recognize...</legend>
+        <legend>Authenticate...</legend>
         <table border="0" cellspacing="0" cellpadding="2" style="margin: 0 0 1em 2em">
             <tr valign="top">
                 <td>
                     <input type="radio" name="authenticate_everybody" id="authenticate_everybody_1" value="1" tal:attributes="checked config/authenticate_everybody" />
                 </td>
                 <td>
-                    <label for="authenticate_everybody_1">Any user the web server authenticates (recommended)</label>
+                    <label for="authenticate_everybody_1">Any user the web server recognizes (recommended)</label>
                 </td>
             </tr>
             <tr valign="top">
@@ -21,7 +21,15 @@
                     <input type="radio" name="authenticate_everybody" id="authenticate_everybody_0" value="0" tal:attributes="checked not:config/authenticate_everybody" />
                 </td>
                 <td>
-                    <label for="authenticate_everybody_0">Only users made within Plone</label>
+                    <label for="authenticate_everybody_0">Only users with a pre-existing Plone account</label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td style="padding-top: 1em">
+                    <input type="checkbox" id="cookie_check_enabled" name="cookie_check_enabled" value="1" tal:attributes="checked config/cookie_check_enabled" />
+                </td>
+                <td style="padding-top: 1em">
+                   <label for="cookie_check_enabled">Only when the</label> <input type="text" size="20" name="cookie_name" id="cookie_name" tal:attributes="value config/cookie_name" /> <label for="cookie_check_enabled">cookie is present</label>
                 </td>
             </tr>
         </table>
@@ -80,17 +88,33 @@
             </tr>
         </table>
     </fieldset>
-    
-    <table border="0" cellspacing="0" cellpadding="2" style="margin: 0; padding: 0">
-        <tr valign="top">
-            <td>
-                <input type="checkbox" id="strip_domain_names" name="strip_domain_names" value="1" tal:attributes="checked config/strip_domain_names" />
-            </td>
-            <td>
-                <label for="strip_domain_names">Strip domain names from login names</label>
-            </td>
-        </tr>
-    </table>
+    <fieldset style="margin: .5em 0 0 0; padding: .5em; border: none">
+        <legend>Strip domains from login names:</legend>
+        <table border="0" cellspacing="0" cellpadding="2" style="margin: 0 0 1em 2em">
+            <tr valign="top">
+                <td>
+                    <input type="checkbox" id="strip_domain_names" name="strip_domain_names" value="1" tal:attributes="checked config/strip_domain_names" />
+                </td>
+                <td>
+                    <label for="strip_domain_names">
+                        Email-like domains<br />
+                        <span class="form-help">fred@example.com &rarr; fred</span>
+                    </label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td>
+                    <input type="checkbox" id="strip_windows_domain" name="strip_windows_domain" value="1" tal:attributes="checked config/strip_windows_domain" />
+                </td>
+                <td>
+                    <label for="strip_windows_domain">
+                        Windows domains<br />
+                        <span class="form-help">EXAMPLE\fred &rarr; fred</span>
+                    </label>
+                </td>
+            </tr>
+        </table>
+    </fieldset>
     
     <p style="margin: 1em 0 0 0; padding: 0">
         Login name is in the <input type="text" size="20" name="username_header" id="username_header" tal:attributes="value config/username_header" /> header.
