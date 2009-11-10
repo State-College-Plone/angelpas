@@ -5,10 +5,8 @@ from Products.CMFCore.utils import getToolByName
 from Products.WebServerAuth.utils import firstInstanceOfClass
 from Products.WebServerAuth.plugin import MultiPlugin
 
-userId = 'fred'
-
-PloneTestCase.installProduct('WebServerAuth')
-PloneTestCase.setupPloneSite(products=['WebServerAuth'])
+PloneTestCase.installProduct('AngelPas')
+PloneTestCase.setupPloneSite(products=['AngelPas'])
 
 
 class WebServerAuthTestCase(PloneTestCase.PloneTestCase):
