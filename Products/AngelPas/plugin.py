@@ -2,8 +2,11 @@ from persistent.dict import PersistentDict
 import inspect
 import logging
 import re
+from time import time
+from elementtree import ElementTree
 from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
+from plone.memoize import ram
 from Products.CMFCore.utils import getToolByName
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.interfaces.plugins import IUserEnumerationPlugin, IAuthenticationPlugin, IExtractionPlugin, IChallengePlugin
@@ -262,6 +265,26 @@ class MultiPlugin(BasePlugin):
         
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
 
+    @property
+    @ram.cache(lambda *args: time() // (60 * 60))
+    def users_to_groups(self):
+        #Loop over courses
+        #Call Angel API for roster xml
+        #users = getUsersFromAngelResponse(response)
+        
+    def getGroupTitleFromAngelResponse(self, response):
+        """Parse the XML reposnse from Angel and pull out the group title."""
+        tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
+        return tree.findtext('//roster/course_title')
+        
+    def getUsersFromAngelResponse(self, response):
+        """Parse the XML reposnse from Angel and pull out a list of userids."""
+        tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
+        
+        users = []
+        for member in tree.getiterator('member'):
+            users.append(member.findtext('user_id').lower())
+        return users
 
 implementedInterfaces = [IUserEnumerationPlugin, IAuthenticationPlugin, IExtractionPlugin, IChallengePlugin]
 classImplements(MultiPlugin, *implementedInterfaces)
