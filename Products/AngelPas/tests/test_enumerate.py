@@ -29,8 +29,8 @@ class TestEnumeration(TestCase):
     
     def test_max_results(self):
         self.failUnlessEqual(self._plugin.enumerateGroups(title='e', sort_by='id', max_results=2), ({'id': '001', 'pluginid': plugin_id}, {'id': '002', 'pluginid': plugin_id}))
-    
-            
+
+
 def test_suite():
     from unittest import TestSuite, makeSuite
     suite = TestSuite()

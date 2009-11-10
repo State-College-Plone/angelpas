@@ -1,31 +1,34 @@
-from persistent.dict import PersistentDict
 import logging
+import os
 from time import time
+
+from persistent.dict import PersistentDict
 from elementtree import ElementTree
 from AccessControl import ClassSecurityInfo
 from BTrees.OOBTree import OOBTree
 from Globals import InitializeClass
 from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
-from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin
+from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
-from Products.AngelPas.utils import www_directory
+from Products.AngelPas.utils import www_directory, tests_directory
 from zope.interface import implements
 
 logger = logging.getLogger('Products.AngelPas')
 
 
 class MultiPlugin(BasePlugin):
-    implements(IGroupEnumerationPlugin)
+    implements(IGroupEnumerationPlugin, IGroupsPlugin)
     security = ClassSecurityInfo()
     meta_type = 'AngelPas Plugin'
     
     _v_groups = {}  # {'TR_200506S1_ALH245_001': {'title': 'Edison Services Demo Course'}}
-    _v_users_to_groups = OOBTree()  # {'fsmith': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
+    _v_users_to_groups = OOBTree()
     
     ## PAS interface implementations: ############################
 
+    security.declarePrivate('enumerateGroups')
     def enumerateGroups(self, id=None, title=None, exact_match=False, sort_by=None, max_results=None, **kw):
         group_ids = []
         
@@ -38,7 +41,7 @@ class MultiPlugin(BasePlugin):
                 for k, v in self.groups.iteritems():
                     if v['title'] == title:
                         group_ids.append(k)
-                        break  # when exact_match is True, we may only return 1. This is unpredictable, though, since the dict is unordered and Title may not be unique. In practice, it may not be a problem.
+                        break  # when exact_match is True, we may only return 1. This is unpredictable, though, since the dict is unordered and title may not be unique. In practice, it may not be a problem.
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
             for k, v in self.groups.iteritems():
                 if (id is not None and id.lower() in k.lower()) or (title is not None and title.lower() in v['title'].lower()):
@@ -57,6 +60,11 @@ class MultiPlugin(BasePlugin):
             del group_infos[max_results:]
         
         return tuple(group_infos)
+    
+    security.declarePrivate('getGroupsForPrincipal')
+    def getGroupsForPrincipal(self, principal, request=None):
+        return tuple(self.users_to_groups.get(principal.getId(), ()))
+        
             
     ## Helper methods: ######################
     
@@ -96,18 +104,26 @@ class MultiPlugin(BasePlugin):
     @property
     @ram.cache(lambda *args: time() // (60 * 60))
     def users_to_groups(self):
+        """Return a mapping where the keys are user IDs and the values are sets of group IDs that the user belongs to.
+        
+        Example: {'fsmith': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
+        """
         #Loop over courses
-        #Call Angel API for roster xml
-        #users = getUsersFromAngelResponse(response)
-        pass
+        #Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
+        f = open(os.path.join(tests_directory, 'sample.xml'), 'r')
+        try:
+            users = self._users_from_angel_response(f.read())
+        finally:
+            f.close()
+        return dict([(u, set(['TR_200506S1_ALH245_001'])) for u in users])
     
-    def getGroupTitleFromAngelResponse(self, response):
-        """Parse the XML reposnse from Angel and pull out the group title."""
+    def _group_title_from_angel_response(self, response):
+        """Parse the XML response from Angel and pull out the group title."""
         tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
         return tree.findtext('//roster/course_title')
         
-    def getUsersFromAngelResponse(self, response):
-        """Parse the XML reposnse from Angel and pull out a list of userids."""
+    def _users_from_angel_response(self, response):
+        """Parse the XML response from Angel and pull out a list of userids."""
         tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
         
         users = []
