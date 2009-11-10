@@ -24,7 +24,6 @@ class MultiPlugin(BasePlugin):
     meta_type = 'AngelPas Plugin'
     
     _v_groups = {}  # {'TR_200506S1_ALH245_001': {'title': 'Edison Services Demo Course'}}
-    _v_users_to_groups = OOBTree()
     
     ## PAS interface implementations: ############################
 
@@ -70,7 +69,7 @@ class MultiPlugin(BasePlugin):
     
     @property
     def groups(self):
-        # TODO: add smarts to calculate and cache groups. Perhaps convert to using memoize.
+        # TODO: add smarts to calculate and cache groups. Probably convert to using memoize.
         return self._v_groups
     
     ## ZMI crap: ############################
@@ -115,7 +114,7 @@ class MultiPlugin(BasePlugin):
             users = self._users_from_angel_response(f.read())
         finally:
             f.close()
-        return dict([(u, set(['TR_200506S1_ALH245_001'])) for u in users])
+        return OOBTree([(u, set(['TR_200506S1_ALH245_001'])) for u in users])
     
     def _group_title_from_angel_response(self, response):
         """Parse the XML response from Angel and pull out the group title."""

@@ -13,7 +13,6 @@ class TestGroupsForPrincipal(TestCase):
         self._plugin = MultiPlugin(plugin_id)
     
     def test_groups_for_principal(self):
-        import pdb;pdb.set_trace()
         self.failUnlessEqual(self._plugin.getGroupsForPrincipal(PropertiedUser('alh245')), ('TR_200506S1_ALH245_001',))
 
 
