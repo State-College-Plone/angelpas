@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<result>
+    <success>
+        <roster>
+            <referer/>
+            <security>ok</security>
+            <course_title>Edison Services Demo Course - DO NOT DELETE</course_title>
+            <course_id>TR_200506S1_ALH245_001</course_id>
+            <member>
+                <user_id>smj11</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <team>The B Team</team>
+                <fname>Shannon</fname>
+                <mname/>
+                <lname>Johnson</lname>
+            </member>
+            <member>
+                <user_id>ALH245</user_id>
+                <course_rights>32</course_rights>
+                <team/>
+                <fname>Amy</fname>
+                <mname/>
+                <lname>Garbrick</lname>
+            </member>
+            <member>
+                <user_id>JMF5123</user_id>
+                <course_rights>32</course_rights>
+                <team>The C Team</team>
+                <fname>Jon</fname>
+                <mname/>
+                <lname>Ford</lname>
+            </member>
+            <member>
+                <user_id>BWM5031</user_id>
+                <course_rights>32</course_rights>
+                <team>The A Team</team>
+                <fname>Brad</fname>
+                <mname/>
+                <lname>Moore</lname>
+            </member>
+            <member>
+                <user_id>cqf3</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <fname>Chris</fname>
+                <mname/>
+                <lname>Fivek</lname>
+            </member>
+            <member>
+                <user_id>tab5083</user_id>
+                <course_rights>2</course_rights>
+                <team>The B Team</team>
+                <fname>Tom</fname>
+                <mname/>
+                <lname>Bierly</lname>
+            </member>
+            <member>
+                <user_id>mdg5064</user_id>
+                <course_rights>2</course_rights>
+                <team/>
+                <fname>Max</fname>
+                <mname/>
+                <lname>Gruber</lname>
+            </member>
+            <member>
+                <user_id>bks12</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <fname>Brian</fname>
+                <mname/>
+                <lname>Smith</lname>
+            </member>
+            <member>
+                <user_id>BKP10</user_id>
+                <course_rights>2</course_rights>
+                <team> The D Team</team>
+                <fname>Bart</fname>
+                <mname>Keller</mname>
+                <lname>Pursel</lname>
+            </member>
+            <member>
+                <user_id>jad52</user_id>
+                <course_rights>32</course_rights>
+                <team>  The D Team  </team>
+                <fname>Joe</fname>
+                <mname/>
+                <lname>DeLuca</lname>
+            </member>
+            <member>
+                <user_id>lxm938</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <team>The B Team</team>
+                <team>The D Team</team>
+                <fname>Loretta</fname>
+                <mname/>
+                <lname>More</lname>
+            </member>
+            <member>
+                <user_id>smc9</user_id>
+                <course_rights>2</course_rights>
+                <team>The B Team</team>
+                <team>The A Team</team>
+                <fname>Shawn</fname>
+                <mname/>
+                <lname>Clark</lname>
+            </member>
+            <member>
+                <user_id>LFL2</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <fname>LISA</fname>
+                <mname/>
+                <lname>LENZE</lname>
+            </member>
+            <member>
+                <user_id>kvb6</user_id>
+                <course_rights>16</course_rights>
+                <team/>
+                <fname>Kelly</fname>
+                <mname>A</mname>
+                <lname>Bryan</lname>
+            </member>
+            <member>
+                <user_id>cas391</user_id>
+                <course_rights>2</course_rights>
+                <team>The B Team</team>
+                <team>The C Team</team>
+                <fname>Chris</fname>
+                <mname/>
+                <lname>Stubs</lname>
+            </member>
+        </roster>
+    </success>
+</result>
