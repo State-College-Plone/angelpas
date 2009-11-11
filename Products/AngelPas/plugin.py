@@ -107,27 +107,25 @@ class MultiPlugin(BasePlugin):
         
         Example: {'fsmith': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
         """
-        #Loop over courses
-        #Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
+        def group_title_from_xml(tree):
+            return tree.findtext('.//roster/course_title')
+            
+        def group_id_from_xml(tree):
+            return tree.findtext('.//roster/course_id')
+            
+        def users_from_xml(tree):
+            """Return a list of userids."""
+            return [member.findtext('user_id').lower() for member in tree.getiterator('member')]
+        
+        # TODO: Loop over courses. Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
+        
         f = open(os.path.join(tests_directory, 'sample.xml'), 'r')
         try:
-            users = self._users_from_angel_response(f.read())
+            tree = ElementTree.fromstring(f.read())  # May raise xml.parsers.expat.ExpatError
         finally:
             f.close()
-        return OOBTree([(u, set(['TR_200506S1_ALH245_001'])) for u in users])
+        users = users_from_xml(tree)
+        return OOBTree([(u, set([group_id_from_xml(tree)])) for u in users])  # TODO: Is there any point using an OOBTree if it's always going to be in RAM?
     
-    def _group_title_from_angel_response(self, response):
-        """Parse the XML response from Angel and pull out the group title."""
-        tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
-        return tree.findtext('//roster/course_title')
-        
-    def _users_from_angel_response(self, response):
-        """Parse the XML response from Angel and pull out a list of userids."""
-        tree = ElementTree.fromstring(response) #May raise xml.parsers.expat.ExpatError
-        
-        users = []
-        for member in tree.getiterator('member'):
-            users.append(member.findtext('user_id').lower())
-        return users
 
 InitializeClass(MultiPlugin)  # Make the security declarations work.
