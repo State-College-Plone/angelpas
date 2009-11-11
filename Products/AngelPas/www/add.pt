@@ -1,13 +1,13 @@
 <div tal:replace="structure context/manage_page_header" />
 <div tal:replace="structure context/manage_tabs" />
 
-<h2>Add a WebServerAuth plugin</h2>
+<h2>Add an ANGEL group management plugin</h2>
 
 <p class="form-help">
-  Install a WebServerAuth plugin. This allows Zope to delegate authentication concerns to Apache or another web server.
+  Install an ANGEL PAS plugin. This lets ANGEL course sections act as PAS groups.
 </p>
 
-<form action="manage_addWebServerAuth" method="POST">
+<form action="manage_addAngelPas" method="POST">
 	<table>
 		<tr>
 			<td class="form-label">

@@ -5,7 +5,6 @@ from time import time
 from persistent.dict import PersistentDict
 from elementtree import ElementTree
 from AccessControl import ClassSecurityInfo
-from BTrees.OOBTree import OOBTree
 from Globals import InitializeClass
 from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
@@ -79,7 +78,7 @@ class MultiPlugin(BasePlugin):
 
         self._setId(id)
         self.title = title
-        self._config = PersistentDict({'courses': []})
+        self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': []})
 
     # A method to return the configuration page:
     security.declareProtected(ManageUsers, 'manage_config')
@@ -97,7 +96,8 @@ class MultiPlugin(BasePlugin):
     security.declareProtected(ManageUsers, 'manage_changeConfig')
     def manage_changeConfig(self, REQUEST=None):
         """Update my configuration based on form data."""
-        self._config[courses] = REQUEST.form['courses']
+        for f in ['url', 'username', 'password', 'sections']:
+            self._config[f] = REQUEST.form[f]
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
 
     @property
@@ -117,7 +117,7 @@ class MultiPlugin(BasePlugin):
             """Return a list of userids."""
             return [member.findtext('user_id').lower() for member in tree.getiterator('member')]
         
-        # TODO: Loop over courses. Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
+        # TODO: Loop over sections. Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
         
         f = open(os.path.join(tests_directory, 'sample.xml'), 'r')
         try:
@@ -125,7 +125,7 @@ class MultiPlugin(BasePlugin):
         finally:
             f.close()
         users = users_from_xml(tree)
-        return OOBTree([(u, set([group_id_from_xml(tree)])) for u in users])  # TODO: Is there any point using an OOBTree if it's always going to be in RAM?
+        return dict([(u, set([group_id_from_xml(tree)])) for u in users])
     
 
 InitializeClass(MultiPlugin)  # Make the security declarations work.
