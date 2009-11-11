@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<result>
+    <success>
+        <roster>
+            <referer/>
+            <security>ok</security>
+            <course_title>Demo Course 2</course_title>
+            <course_id>002</course_id>
+            <member>
+                <user_id>smj11</user_id>
+                <course_rights>2</course_rights>
+                <team>The A Team</team>
+                <team>The B Team</team>
+                <fname>Shannon</fname>
+                <mname/>
+                <lname>Johnson</lname>
+            </member>
+            <member>
+                <user_id>ALH245</user_id>
+                <course_rights>32</course_rights>
+                <team/>
+                <fname>Amy</fname>
+                <mname/>
+                <lname>Garbrick</lname>
+            </member>
+        </roster>
+    </success>
+</result>

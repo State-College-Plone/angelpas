@@ -1,19 +1,10 @@
 """Unit tests for group enumeration plugin"""
 
-from unittest import TestCase
-
 from Products.AngelPas.plugin import MultiPlugin
+from Products.AngelPas.tests.base import AngelUnitTest, plugin_id
 
-plugin_id = 'angel_pas'
 
-
-class TestEnumeration(TestCase):
-    def setUp(self):
-        self._plugin = MultiPlugin(plugin_id)
-        self._plugin._v_groups = {'001': {'title': 'Demo Course 1'},
-                                  '002': {'title': 'Demo Course 2'},
-                                  '113': {'title': 'Funny-titled 3'}}
-    
+class TestEnumeration(AngelUnitTest):
     def test_exact_match_by_id(self):
         self.failUnlessEqual(self._plugin.enumerateGroups(id='001', exact_match=True), ({'id': '001', 'pluginid': plugin_id},))
     

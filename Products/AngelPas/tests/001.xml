@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<result>
+    <success>
+        <roster>
+            <referer/>
+            <security>ok</security>
+            <course_title>Demo Course 1</course_title>
+            <course_id>001</course_id>
+            <member>
+                <user_id>ALH245</user_id>
+                <course_rights>32</course_rights>
+                <team>The R Team</team>
+                <team>The S Team</team>
+                <fname>Amy</fname>
+                <mname/>
+                <lname>Garbrick</lname>
+            </member>
+        </roster>
+    </success>
+</result>

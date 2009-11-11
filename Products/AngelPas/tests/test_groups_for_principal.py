@@ -1,19 +1,15 @@
 """Unit tests for IGroups plugin"""
 
-from unittest import TestCase
-
 from Products.AngelPas.plugin import MultiPlugin
+from Products.AngelPas.tests.base import AngelUnitTest, plugin_id
 from Products.PluggableAuthService.PropertiedUser import PropertiedUser
 
-plugin_id = 'angel_pas'
 
-
-class TestGroupsForPrincipal(TestCase):
-    def setUp(self):
-        self._plugin = MultiPlugin(plugin_id)
-    
+class TestGroupsForPrincipal(AngelUnitTest):
     def test_groups_for_principal(self):
-        self.failUnlessEqual(self._plugin.getGroupsForPrincipal(PropertiedUser('alh245')), ('TR_200506S1_ALH245_001',))
+        groups = list(self._plugin.getGroupsForPrincipal(PropertiedUser('alh245')))
+        groups.sort()
+        self.failUnlessEqual(groups, ['001', '002'])
 
 
 def test_suite():

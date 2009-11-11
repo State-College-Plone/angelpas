@@ -21,9 +21,7 @@ class MultiPlugin(BasePlugin):
     implements(IGroupEnumerationPlugin, IGroupsPlugin)
     security = ClassSecurityInfo()
     meta_type = 'AngelPas Plugin'
-    
-    _v_groups = {}  # {'TR_200506S1_ALH245_001': {'title': 'Edison Services Demo Course'}}
-    
+        
     ## PAS interface implementations: ############################
 
     security.declarePrivate('enumerateGroups')
@@ -33,15 +31,15 @@ class MultiPlugin(BasePlugin):
         # Build list of group IDs we should return:
         if exact_match:  # Should this be case-sensitive?
             if id:
-                if id in self.groups:
+                if id in self._groups:
                     group_ids.append(id)
             elif title:
-                for k, v in self.groups.iteritems():
+                for k, v in self._groups.iteritems():
                     if v['title'] == title:
                         group_ids.append(k)
                         break  # when exact_match is True, we may only return 1. This is unpredictable, though, since the dict is unordered and title may not be unique. In practice, it may not be a problem.
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
-            for k, v in self.groups.iteritems():
+            for k, v in self._groups.iteritems():
                 if (id is not None and id.lower() in k.lower()) or (title is not None and title.lower() in v['title'].lower()):
                     group_ids.append(k)
         
@@ -61,16 +59,71 @@ class MultiPlugin(BasePlugin):
     
     security.declarePrivate('getGroupsForPrincipal')
     def getGroupsForPrincipal(self, principal, request=None):
-        return tuple(self.users_to_groups.get(principal.getId(), ()))
+        return tuple(self._users.get(principal.getId(), {}).get('groups', set()))
         
             
     ## Helper methods: ######################
     
     @property
-    def groups(self):
-        # TODO: add smarts to calculate and cache groups. Probably convert to using memoize.
-        return self._v_groups
+    def _users(self):
+        return self._angel_data[0]
     
+    @property
+    def _groups(self):
+        return self._angel_data[1]
+    
+    security.declarePrivate('_roster_xml')
+    def _roster_xml(self, section_id):
+        """Return the roster XML of the given section."""
+        # TODO: Call Angel API for roster xml. Get the address from self._config.
+        f = open(os.path.join(tests_directory, '%s.xml' % section_id), 'r')
+        try:
+            xml = f.read()
+        finally:
+            f.close()
+        return xml
+    
+    @property
+    @ram.cache(lambda *args: time() // (60 * 60))
+    def _angel_data(self):
+        """Return the user and group info from ANGEL as a 2-item tuple.
+        
+        Item 0 is a mapping where the keys are user IDs and the values are group into records. Example:
+            
+            {'fsmith':
+                {'groups': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
+            }
+        
+        Item 1 is a mapping of group IDs to group info records. Example:
+        
+            {'TR_200506S1_ALH245_001':
+                {'title': 'Edison Services Demo Course'}
+            }
+        """
+        def group_title_from_tree(tree):
+            return tree.findtext('.//roster/course_title')
+            
+        def group_id_from_tree(tree):
+            return tree.findtext('.//roster/course_id')
+            
+        def users_from_tree(tree):
+            """Return an iterator of userids."""
+            return ((member.findtext('user_id').lower() for member in tree.getiterator('member')))
+        
+        users = {}
+        groups = {}
+        for s in self._config['sections']:
+            tree = ElementTree.fromstring(self._roster_xml(s))  # may raise xml.parsers.expat.ExpatError
+            
+            # Make a group info record:
+            groups[s] = {'title': group_title_from_tree(tree)}
+            
+            # Add this group to each member's user info record:
+            group_id = group_id_from_tree(tree)
+            for u in users_from_tree(tree):
+                users.setdefault(u, {'groups': set()})['groups'].add(group_id) 
+        return users, groups
+
     ## ZMI crap: ############################
     
     def __init__(self, id, title=None):
@@ -99,33 +152,6 @@ class MultiPlugin(BasePlugin):
         for f in ['url', 'username', 'password', 'sections']:
             self._config[f] = REQUEST.form[f]
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
-
-    @property
-    @ram.cache(lambda *args: time() // (60 * 60))
-    def users_to_groups(self):
-        """Return a mapping where the keys are user IDs and the values are sets of group IDs that the user belongs to.
-        
-        Example: {'fsmith': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
-        """
-        def group_title_from_xml(tree):
-            return tree.findtext('.//roster/course_title')
-            
-        def group_id_from_xml(tree):
-            return tree.findtext('.//roster/course_id')
-            
-        def users_from_xml(tree):
-            """Return a list of userids."""
-            return [member.findtext('user_id').lower() for member in tree.getiterator('member')]
-        
-        # TODO: Loop over sections. Call Angel API for roster xml. Get the address from self._config, and make it default to PSU's.
-        
-        f = open(os.path.join(tests_directory, 'sample.xml'), 'r')
-        try:
-            tree = ElementTree.fromstring(f.read())  # May raise xml.parsers.expat.ExpatError
-        finally:
-            f.close()
-        users = users_from_xml(tree)
-        return dict([(u, set([group_id_from_xml(tree)])) for u in users])
     
 
 InitializeClass(MultiPlugin)  # Make the security declarations work.
