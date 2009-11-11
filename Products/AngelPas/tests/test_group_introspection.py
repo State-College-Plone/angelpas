@@ -1,0 +1,16 @@
+"""Unit tests for IGroups plugin"""
+
+from Products.AngelPas.tests.base_integration import AngelIntegrationTest
+
+
+class TestGroupIntrospection(AngelIntegrationTest):
+    def test_get_group_members(self):
+        user_ids = self._plugin.getGroupMembers('001')
+        self.failUnlessEqual(user_ids, ['alh245'])
+
+
+def test_suite():
+    from unittest import TestSuite, makeSuite
+    suite = TestSuite()
+    suite.addTest(makeSuite(TestGroupIntrospection))
+    return suite

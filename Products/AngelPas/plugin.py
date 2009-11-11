@@ -8,22 +8,23 @@ from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
 from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
-from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin
+from Products.PlonePAS.interfaces.group import IGroupIntrospection
+import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
+from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin, IUserEnumerationPlugin
+from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
 from Products.AngelPas.utils import www_directory, tests_directory
 from zope.interface import implements
 
-logger = logging.getLogger('Products.AngelPas')
-
 
 class MultiPlugin(BasePlugin):
-    implements(IGroupEnumerationPlugin, IGroupsPlugin)
     security = ClassSecurityInfo()
     meta_type = 'AngelPas Plugin'
         
     ## PAS interface implementations: ############################
-
+    
+    # IGroupEnumerationPlugin:
     security.declarePrivate('enumerateGroups')
     def enumerateGroups(self, id=None, title=None, exact_match=False, sort_by=None, max_results=None, **kw):
         group_ids = []
@@ -57,19 +58,89 @@ class MultiPlugin(BasePlugin):
         
         return tuple(group_infos)
     
+    # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually return users):
+    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
+        user_ids = []
+        
+        # Build list of user IDs we should return:
+        if exact_match:  # Should this be case-sensitive?
+            if id:
+                if id in self._users:
+                    user_ids.append(id)
+            if login:
+                raise NotImplementedError("We have yet to figure out what to do about login names. It's probably hard to get them.")
+        else:  # Do case-insensitive containment searches. Searching on '' returns everything.
+            for k in self._users:
+                k_lower = k.lower()
+                if (id is not None and id.lower() in k_lower) or (login is not None and login.lower() in k_lower):
+                    user_ids.append(k)
+        
+        # For each gathered user ID, flesh out a user info record:
+        plugin_id = self.getId()
+        user_infos = [{'id': uid, 'login': uid, 'pluginid': plugin_id} for uid in user_ids]  # TODO: Stop making bad assumption that ID and login name are the same.
+        
+        # Sort, if requested:
+        if sort_by in ['id', 'login']:
+            user_infos.sort(key=lambda x: x[sort_by])
+        
+        # Truncate, if requested:
+        if max_results is not None:
+            del user_infos[max_results:]
+        
+        return tuple(user_infos)
+    
+    # IGroupsPlugin:
     security.declarePrivate('getGroupsForPrincipal')
     def getGroupsForPrincipal(self, principal, request=None):
         return tuple(self._users.get(principal.getId(), {}).get('groups', set()))
-        
+    
+    # IGroupIntrospection:
+    _findGroup = PlonePasGroupPlugin.GroupManager._findGroup
+    _createGroup = PlonePasGroupPlugin.GroupManager._createGroup
+
+    def getGroupById(self, group_id, default=None):
+        if group_id in self._groups:
+            plugins = self._getPAS()._getOb('plugins')
+            return self._findGroup(plugins, group_id, None)
+        else:
+            return default
+
+    def getGroups(self):
+        return [self.getGroupById(x) for x in self.getGroupIds()]
+
+    def getGroupIds(self):
+        return self._groups.keys()
+
+    def getGroupMembers(self, group_id):
+        """Return a list of usernames of the members of the group."""
+        return [id for (id, info) in self._users.iteritems() if group_id in info['groups']]  # TODO: don't linear scan over users
             
     ## Helper methods: ######################
     
     @property
     def _users(self):
+        """Return a mapping where the keys are user IDs and the values are group into records.
+        
+        Example:
+            
+            {'fsmith':
+                {'groups': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
+            }
+        
+        """
         return self._angel_data[0]
     
     @property
     def _groups(self):
+        """Return a mapping of group IDs to group info records.
+        
+        Example:
+        
+            {'TR_200506S1_ALH245_001':
+                {'title': 'Edison Services Demo Course'}
+            }
+        
+        """
         return self._angel_data[1]
     
     security.declarePrivate('_roster_xml')
@@ -86,19 +157,9 @@ class MultiPlugin(BasePlugin):
     @property
     @ram.cache(lambda *args: time() // (60 * 60))
     def _angel_data(self):
-        """Return the user and group info from ANGEL as a 2-item tuple.
+        """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
         
-        Item 0 is a mapping where the keys are user IDs and the values are group into records. Example:
-            
-            {'fsmith':
-                {'groups': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
-            }
-        
-        Item 1 is a mapping of group IDs to group info records. Example:
-        
-            {'TR_200506S1_ALH245_001':
-                {'title': 'Edison Services Demo Course'}
-            }
+        See _users() and _groups() docstrings for details of each.
         """
         def group_title_from_tree(tree):
             return tree.findtext('.//roster/course_title')
@@ -154,4 +215,6 @@ class MultiPlugin(BasePlugin):
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
     
 
+implementedInterfaces = [IGroupEnumerationPlugin, IGroupsPlugin, IGroupIntrospection, IUserEnumerationPlugin]
+classImplements(MultiPlugin, *implementedInterfaces)
 InitializeClass(MultiPlugin)  # Make the security declarations work.
