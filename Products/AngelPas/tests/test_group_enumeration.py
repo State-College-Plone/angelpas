@@ -10,6 +10,7 @@ class TestEnumeration(AngelUnitTest):
     
     def test_multiple_matches_by_id(self):
         """PAS says you must accept sequences of IDs."""
+        # Known failure. This isn't implemented yet.
         self.failUnlessEqual(self._plugin.enumerateGroups(id=['001', '002'], exact_match=True), ({'id': '001', 'pluginid': plugin_id}, {'id': '002', 'pluginid': plugin_id}))
     
     def test_exact_match_by_title(self):

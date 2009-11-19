@@ -60,24 +60,28 @@ class MultiPlugin(BasePlugin):
     
     # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually return users):
     def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
-        user_ids = []
+        user_ids = set()  # tuples of (user ID, login)
         
         # Build list of user IDs we should return:
         if exact_match:  # Should this be case-sensitive?
-            if id:
-                if id in self._users:
-                    user_ids.append(id)
             if login:
-                raise NotImplementedError("We have yet to figure out what to do about login names. It's probably hard to get them.")
+                if login in self._users:
+                    user = self._getPAS().getUser(login)  # Is this going to call our enumerator and always be True or something? Apparently not.
+                    user_id = user and user.getId() or login  # If user doesn't exist, it's a user we're dynamically manifesting, so we can assume id == login.
+                    user_ids.add((user_id, login))
+            if id:
+                if id in self._users:  # TODO: IHNI if this block makes sense.
+                    user_ids.add((id, id))
+                #raise NotImplementedError("We have yet to figure out what to do about user IDs.")
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
-            for k in self._users:
+            for k in self._users:  # TODO: Pretty permissive. Should we be searching against logins AND IDs?
                 k_lower = k.lower()
                 if (id is not None and id.lower() in k_lower) or (login is not None and login.lower() in k_lower):
-                    user_ids.append(k)
+                    user_ids.add((k, k))
         
         # For each gathered user ID, flesh out a user info record:
         plugin_id = self.getId()
-        user_infos = [{'id': uid, 'login': uid, 'pluginid': plugin_id} for uid in user_ids]  # TODO: Stop making bad assumption that ID and login name are the same.
+        user_infos = [{'id': x, 'login': y, 'pluginid': plugin_id} for (x, y) in user_ids]
         
         # Sort, if requested:
         if sort_by in ['id', 'login']:
@@ -96,8 +100,8 @@ class MultiPlugin(BasePlugin):
     
     # IGroupIntrospection:
     _findGroup = PlonePasGroupPlugin.GroupManager._findGroup
-    _createGroup = PlonePasGroupPlugin.GroupManager._createGroup
-
+    _createGroup = PlonePasGroupPlugin.GroupManager._createGroup  # This is here only so _findGroup can call it.
+    
     def getGroupById(self, group_id, default=None):
         if group_id in self._groups:
             plugins = self._getPAS()._getOb('plugins')
@@ -119,7 +123,7 @@ class MultiPlugin(BasePlugin):
     
     @property
     def _users(self):
-        """Return a mapping where the keys are user IDs and the values are group into records.
+        """Return a mapping where the keys are Access Account IDs (considered equivalent to login names) and the values are group info records.
         
         Example:
             
