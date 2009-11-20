@@ -126,9 +126,14 @@ class MultiPlugin(BasePlugin):
     
     # IPropertiesPlugin:
     def getPropertiesForUser(self, user, request=None):
-        u = self._users.get(user.getUserName())
+        login = user.getUserName()
+        u = self._users.get(login)
         if u:
-            return {'fullname': u['fullname']}
+            ret = {'fullname': u['fullname']}
+            email_domain = self._config['email_domain']
+            if email_domain:
+                ret['email'] = '%s@%s' % (login, email_domain)
+            return ret
         else:
             return {}
     
@@ -211,7 +216,7 @@ class MultiPlugin(BasePlugin):
 
         self._setId(id)
         self.title = title
-        self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': []})
+        self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': ['001', '002', '113'], 'email_domain': 'psu.edu'})
 
     # A method to return the configuration page:
     security.declareProtected(ManageUsers, 'manage_config')
@@ -229,7 +234,7 @@ class MultiPlugin(BasePlugin):
     security.declareProtected(ManageUsers, 'manage_changeConfig')
     def manage_changeConfig(self, REQUEST=None):
         """Update my configuration based on form data."""
-        for f in ['url', 'username', 'password', 'sections']:
+        for f in ['url', 'username', 'password', 'sections', 'email_domain']:
             self._config[f] = REQUEST.form[f]
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
     

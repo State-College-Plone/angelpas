@@ -41,6 +41,15 @@
                 <textarea cols="45" rows="6" name="sections:lines" id="sections" tal:content="python:'\n'.join(config['sections'])" />
             </td>
         </tr>
+        <tr valign="top">
+            <td align="right">
+                <label for="email_domain">User email domain</label>
+            </td>
+            <td>
+                <input type="text" name="email_domain" id="email_domain" size="15" tal:attributes="value config/email_domain" /><br />
+                <span class="form-help">Optional. If filled, users' email addresses will be assumed to be login_name@this.domain.</span>
+            </td>
+        </tr>
     </table>
 
     <input type="submit" name="submit" value="Save Changes" style="margin: 1em 0 0 0" />
