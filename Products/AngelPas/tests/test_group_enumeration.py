@@ -5,6 +5,9 @@ from Products.AngelPas.tests.base import AngelUnitTest, plugin_id
 
 
 class TestEnumeration(AngelUnitTest):
+    def test_find_all(self):
+        self.failUnless(len(self._plugin.enumerateGroups()) > 0)
+    
     def test_exact_match_by_id(self):
         self.failUnlessEqual(self._plugin.enumerateGroups(id='001', exact_match=True), ({'id': '001', 'pluginid': plugin_id},))
     

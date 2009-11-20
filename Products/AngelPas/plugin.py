@@ -10,7 +10,7 @@ from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PlonePAS.interfaces.group import IGroupIntrospection
 import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
-from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin, IUserEnumerationPlugin
+from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin, IUserEnumerationPlugin, IPropertiesPlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
@@ -41,7 +41,7 @@ class MultiPlugin(BasePlugin):
                         break  # when exact_match is True, we may only return 1. This is unpredictable, though, since the dict is unordered and title may not be unique. In practice, it may not be a problem.
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
             for k, v in self._groups.iteritems():
-                if (id is not None and id.lower() in k.lower()) or (title is not None and title.lower() in v['title'].lower()):
+                if (id is None and title is None) or (id is not None and id.lower() in k.lower()) or (title is not None and title.lower() in v['title'].lower()):
                     group_ids.append(k)
         
         # For each gathered group ID, flesh out a group info record:
@@ -59,7 +59,7 @@ class MultiPlugin(BasePlugin):
         return tuple(group_infos)
     
     # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually return users):
-    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
+    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, fullname=None, **kw):
         user_ids = set()  # tuples of (user ID, login)
         
         # Build list of user IDs we should return:
@@ -74,9 +74,14 @@ class MultiPlugin(BasePlugin):
                     user_ids.add((id, id))
                 #raise NotImplementedError("We have yet to figure out what to do about user IDs.")
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
-            for k in self._users:  # TODO: Pretty permissive. Should we be searching against logins AND IDs?
+            for k, user_info in self._users.iteritems():  # TODO: Pretty permissive. Should we be searching against logins AND IDs? We might also optimize to avoid redundant tests of None-ship.
                 k_lower = k.lower()
-                if (id is not None and id.lower() in k_lower) or (login is not None and login.lower() in k_lower):
+                if fullname is not None:
+                    fullname_lower = fullname.lower()
+                if (id is None and login is None and fullname is None) or \
+                   (id is not None and id.lower() in k_lower) or \
+                   (login is not None and login.lower() in k_lower) or \
+                   (fullname is not None and fullname_lower in user_info['fullname'].lower()):
                     user_ids.add((k, k))
         
         # For each gathered user ID, flesh out a user info record:
@@ -118,7 +123,15 @@ class MultiPlugin(BasePlugin):
     def getGroupMembers(self, group_id):
         """Return a list of usernames of the members of the group."""
         return [id for (id, info) in self._users.iteritems() if group_id in info['groups']]  # TODO: don't linear scan over users
-            
+    
+    # IPropertiesPlugin:
+    def getPropertiesForUser(self, user, request=None):
+        u = self._users.get(user.getUserName())
+        if u:
+            return {'fullname': u['fullname']}
+        else:
+            return {}
+    
     ## Helper methods: ######################
     
     @property
@@ -170,10 +183,6 @@ class MultiPlugin(BasePlugin):
             
         def group_id_from_tree(tree):
             return tree.findtext('.//roster/course_id')
-            
-        def users_from_tree(tree):
-            """Return an iterator of userids."""
-            return ((member.findtext('user_id').lower() for member in tree.getiterator('member')))
         
         users = {}
         groups = {}
@@ -183,10 +192,16 @@ class MultiPlugin(BasePlugin):
             # Make a group info record:
             groups[s] = {'title': group_title_from_tree(tree)}
             
-            # Add this group to each member's user info record:
+            # Add this group to each member's user info record, also filling out member info like full name as we go:
             group_id = group_id_from_tree(tree)
-            for u in users_from_tree(tree):
-                users.setdefault(u, {'groups': set()})['groups'].add(group_id) 
+            for member in tree.getiterator('member'):
+                user_id = member.findtext('user_id').lower()
+                fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
+                
+                u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
+                u['groups'].add(group_id)
+                if not u['fullname']:
+                    u['fullname'] = fullname
         return users, groups
 
     ## ZMI crap: ############################
@@ -219,6 +234,6 @@ class MultiPlugin(BasePlugin):
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
     
 
-implementedInterfaces = [IGroupEnumerationPlugin, IGroupsPlugin, IGroupIntrospection, IUserEnumerationPlugin]
+implementedInterfaces = [IGroupEnumerationPlugin, IGroupsPlugin, IGroupIntrospection, IUserEnumerationPlugin, IPropertiesPlugin]
 classImplements(MultiPlugin, *implementedInterfaces)
 InitializeClass(MultiPlugin)  # Make the security declarations work.

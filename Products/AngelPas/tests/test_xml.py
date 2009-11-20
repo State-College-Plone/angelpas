@@ -7,10 +7,14 @@ from Products.AngelPas.tests.base import AngelUnitTest
 class TestXml(AngelUnitTest):
     """Test a representative piece of the sample data to make sure XML parsing and transformation to the in-memory data formats worked."""
     
-    def test_users(self):
+    def test_user_group_assignments(self):
         u = self._plugin._users
         self.failUnlessEqual(u['alh245']['groups'], set(['002', '001']))
         self.failUnlessEqual(u['smj11']['groups'], set(['002', '113']))
+
+    def test_user_fullnames(self):
+        u = self._plugin._users
+        self.failUnlessEqual(u['alh245']['fullname'], 'Amy Garbrick')
 
     def test_groups(self):
         g = self._plugin._groups
