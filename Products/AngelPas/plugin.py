@@ -66,13 +66,12 @@ class MultiPlugin(BasePlugin):
         if exact_match:  # Should this be case-sensitive?
             if login:
                 if login in self._users:
-                    user = self._getPAS().getUser(login)  # Is this going to call our enumerator and always be True or something? Apparently not.
+                    user = self._getPAS().getUser(login)  # Is this going to call our enumerator and always be True or something? Apparently not in Plone, but see the test_exact_match_by_id test in test_user_enumeration.
                     user_id = user and user.getId() or login  # If user doesn't exist, it's a user we're dynamically manifesting, so we can assume id == login.
                     user_ids.add((user_id, login))
             if id:
                 if id in self._users:  # TODO: IHNI if this block makes sense.
                     user_ids.add((id, id))
-                #raise NotImplementedError("We have yet to figure out what to do about user IDs.")
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
             for k, user_info in self._users.iteritems():  # TODO: Pretty permissive. Should we be searching against logins AND IDs? We might also optimize to avoid redundant tests of None-ship.
                 k_lower = k.lower()
@@ -127,15 +126,21 @@ class MultiPlugin(BasePlugin):
     # IPropertiesPlugin:
     def getPropertiesForUser(self, user, request=None):
         login = user.getUserName()
-        u = self._users.get(login)
-        if u:
-            ret = {'fullname': u['fullname']}
-            email_domain = self._config['email_domain']
-            if email_domain:
-                ret['email'] = '%s@%s' % (login, email_domain)
-            return ret
+        is_group = getattr(user, 'isGroup', lambda: None)()
+        
+        if is_group:
+            g = self._groups.get(login)
+            if g:
+                return {'title': g['title']}
         else:
-            return {}
+            u = self._users.get(login)
+            if u:
+                ret = {'fullname': u['fullname']}
+                email_domain = self._config['email_domain']
+                if email_domain:
+                    ret['email'] = '%s@%s' % (login, email_domain)
+                return ret
+        return {}
     
     ## Helper methods: ######################
     

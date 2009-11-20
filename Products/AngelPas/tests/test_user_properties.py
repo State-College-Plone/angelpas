@@ -7,7 +7,7 @@ from Products.PluggableAuthService.PropertiedUser import PropertiedUser
 
 class TestProperties(AngelUnitTest):
     def test_user_properties(self):
-        self.failUnlessEqual(self._plugin.getPropertiesForUser(PropertiedUser('alh245')), {'fullname': 'Amy Garbrick'})
+        self.failUnlessEqual(self._plugin.getPropertiesForUser(PropertiedUser('alh245')), {'fullname': 'Amy Garbrick', 'email': 'alh245@psu.edu'})
 
 
 def test_suite():
