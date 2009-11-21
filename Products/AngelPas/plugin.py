@@ -27,22 +27,19 @@ class MultiPlugin(BasePlugin):
     # IGroupEnumerationPlugin:
     security.declarePrivate('enumerateGroups')
     def enumerateGroups(self, id=None, title=None, exact_match=False, sort_by=None, max_results=None, **kw):
+        # Though title is not (that I know of) guaranteed to be unique or immutable, it probably will be for the set of groups brought into a Plone site. Only by using the title as the group ID can we get Plone to show titles in the Users & Groups control panel's Groups tab, and we have to do that, as the IDs are totally unfriendly. Code for treating ID and title separately is in r9501.
         group_ids = []
         
         # Build list of group IDs we should return:
         if exact_match:  # Should this be case-sensitive?
-            if id:
-                if id in self._groups:
-                    group_ids.append(id)
-            elif title:
-                for k, v in self._groups.iteritems():
-                    if v['title'] == title:
-                        group_ids.append(k)
-                        break  # when exact_match is True, we may only return 1. This is unpredictable, though, since the dict is unordered and title may not be unique. In practice, it may not be a problem.
+            title_or_id = title or id
+            if title_or_id and title_or_id in self._groups:
+                group_ids.append(title_or_id)
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
-            for k, v in self._groups.iteritems():
-                if (id is None and title is None) or (id is not None and id.lower() in k.lower()) or (title is not None and title.lower() in v['title'].lower()):
-                    group_ids.append(k)
+            for each_group in self._groups:
+                each_group_lower = each_group.lower()
+                if (id is None and title is None) or (id is not None and id.lower() in each_group_lower) or (title is not None and title.lower() in each_group_lower):  # TODO: Stop recomputing .lower().
+                    group_ids.append(each_group)
         
         # For each gathered group ID, flesh out a group info record:
         plugin_id = self.getId()
@@ -117,7 +114,7 @@ class MultiPlugin(BasePlugin):
         return [self.getGroupById(x) for x in self.getGroupIds()]
 
     def getGroupIds(self):
-        return self._groups.keys()
+        return list(self._groups)
 
     def getGroupMembers(self, group_id):
         """Return a list of usernames of the members of the group."""
@@ -129,9 +126,8 @@ class MultiPlugin(BasePlugin):
         is_group = getattr(user, 'isGroup', lambda: None)()
         
         if is_group:
-            g = self._groups.get(login)
-            if g:
-                return {'title': g['title']}
+            if login in self._groups:
+                return {'title': login}  # title == id == login. Yuck. See comments under enumerateGroups().
         else:
             u = self._users.get(login)
             if u:
@@ -151,7 +147,7 @@ class MultiPlugin(BasePlugin):
         Example:
             
             {'fsmith':
-                {'groups': set(['TR_200506S1_ALH245_001', 'TR_200506S1_ALH245_002'])}
+                {'groups': set(['Edison Services Demo Course', 'Some Other Demo Course'])}
             }
         
         """
@@ -159,13 +155,11 @@ class MultiPlugin(BasePlugin):
     
     @property
     def _groups(self):
-        """Return a mapping of group IDs to group info records.
+        """Return an iterable of group titles (which are used as group IDs).
         
         Example:
         
-            {'TR_200506S1_ALH245_001':
-                {'title': 'Edison Services Demo Course'}
-            }
+            set(['Edison Services Demo Course'])
         
         """
         return self._angel_data[1]
@@ -195,21 +189,21 @@ class MultiPlugin(BasePlugin):
             return tree.findtext('.//roster/course_id')
         
         users = {}
-        groups = {}
+        groups = set()
         for s in self._config['sections']:
             tree = ElementTree.fromstring(self._roster_xml(s))  # may raise xml.parsers.expat.ExpatError
             
-            # Make a group info record:
-            groups[s] = {'title': group_title_from_tree(tree)}
+            # Add to groups:
+            group_title = group_title_from_tree(tree)
+            groups.add(group_title)
             
             # Add this group to each member's user info record, also filling out member info like full name as we go:
-            group_id = group_id_from_tree(tree)
             for member in tree.getiterator('member'):
                 user_id = member.findtext('user_id').lower()
                 fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
                 
                 u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
-                u['groups'].add(group_id)
+                u['groups'].add(group_title)
                 if not u['fullname']:
                     u['fullname'] = fullname
         return users, groups

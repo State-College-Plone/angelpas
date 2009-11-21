@@ -9,7 +9,7 @@ class TestGroupsForPrincipal(AngelUnitTest):
     def test_groups_for_principal(self):
         groups = list(self._plugin.getGroupsForPrincipal(PropertiedUser('alh245')))
         groups.sort()
-        self.failUnlessEqual(groups, ['001', '002'])
+        self.failUnlessEqual(groups, ['Demo Course 1', 'Demo Course 2'])
 
 
 def test_suite():

@@ -5,7 +5,7 @@ from Products.AngelPas.tests.base_integration import AngelIntegrationTest
 
 class TestGroupIntrospection(AngelIntegrationTest):
     def test_get_group_members(self):
-        user_ids = self._plugin.getGroupMembers('001')
+        user_ids = self._plugin.getGroupMembers('Demo Course 1')
         self.failUnlessEqual(user_ids, ['alh245'])
 
 
