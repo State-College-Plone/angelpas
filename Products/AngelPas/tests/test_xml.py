@@ -1,10 +1,10 @@
 """Unit tests for the XML parsing and transformation"""
 
 from Products.AngelPas.plugin import MultiPlugin
-from Products.AngelPas.tests.base import AngelUnitTest
+from Products.AngelPas.tests.base import MockNetworkingUnitTest
 
 
-class TestXml(AngelUnitTest):
+class TestXml(MockNetworkingUnitTest):
     """Test a representative piece of the sample data to make sure XML parsing and transformation to the in-memory data formats worked."""
     
     def test_user_group_assignments(self):

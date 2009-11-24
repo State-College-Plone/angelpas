@@ -1,11 +1,11 @@
 """Unit tests for IGroups plugin"""
 
 from Products.AngelPas.plugin import MultiPlugin
-from Products.AngelPas.tests.base import AngelUnitTest, plugin_id
+from Products.AngelPas.tests.base import MockNetworkingUnitTest, plugin_id
 from Products.PluggableAuthService.PropertiedUser import PropertiedUser
 
 
-class TestGroupsForPrincipal(AngelUnitTest):
+class TestGroupsForPrincipal(MockNetworkingUnitTest):
     def test_groups_for_principal(self):
         groups = list(self._plugin.getGroupsForPrincipal(PropertiedUser('alh245')))
         groups.sort()

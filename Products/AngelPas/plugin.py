@@ -1,5 +1,4 @@
 import logging
-import os
 from time import time
 
 from persistent.dict import PersistentDict
@@ -15,7 +14,6 @@ from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
 from Products.AngelPas.utils import www_directory, tests_directory
-from zope.interface import implements
 
 
 class MultiPlugin(BasePlugin):
@@ -118,6 +116,7 @@ class MultiPlugin(BasePlugin):
 
     def getGroupMembers(self, group_id):
         """Return a list of usernames of the members of the group."""
+        # As of Plone 3.3rc4, roles assigned to supergroups don't filter down to the members of subgroups, so we cannot nest groups to good effect.
         return [id for (id, info) in self._users.iteritems() if group_id in info['groups']]  # TODO: don't linear scan over users
     
     # IPropertiesPlugin:
@@ -142,7 +141,7 @@ class MultiPlugin(BasePlugin):
     
     @property
     def _users(self):
-        """Return a mapping where the keys are Access Account IDs (considered equivalent to login names) and the values are group info records.
+        """Return a mapping where the keys are Access Account IDs (considered equivalent to login names) and the values are user info records.
         
         Example:
             
@@ -159,7 +158,7 @@ class MultiPlugin(BasePlugin):
         
         Example:
         
-            set(['Edison Services Demo Course'])
+            set(['Edison Services Demo Course', 'Edison Services Demo Course: Instructors'])
         
         """
         return self._angel_data[1]
@@ -168,12 +167,7 @@ class MultiPlugin(BasePlugin):
     def _roster_xml(self, section_id):
         """Return the roster XML of the given section."""
         # TODO: Call Angel API for roster xml. Get the address from self._config.
-        f = open(os.path.join(tests_directory, '%s.xml' % section_id), 'r')
-        try:
-            xml = f.read()
-        finally:
-            f.close()
-        return xml
+        raise NotImplementedError
     
     @property
     @ram.cache(lambda *args: time() // (60 * 60))
@@ -184,9 +178,6 @@ class MultiPlugin(BasePlugin):
         """
         def group_title_from_tree(tree):
             return tree.findtext('.//roster/course_title')
-            
-        def group_id_from_tree(tree):
-            return tree.findtext('.//roster/course_id')
         
         users = {}
         groups = set()
@@ -197,11 +188,10 @@ class MultiPlugin(BasePlugin):
             group_title = group_title_from_tree(tree)
             groups.add(group_title)
             
-            # Add this group to each member's user info record, also filling out member info like full name as we go:
             for member in tree.getiterator('member'):
+                # Add this group to the member's user info record, also filling out member info like full name as we go:
                 user_id = member.findtext('user_id').lower()
                 fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
-                
                 u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
                 u['groups'].add(group_title)
                 if not u['fullname']:
@@ -236,7 +226,7 @@ class MultiPlugin(BasePlugin):
         for f in ['url', 'username', 'password', 'sections', 'email_domain']:
             self._config[f] = REQUEST.form[f]
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
-    
+
 
 implementedInterfaces = [IGroupEnumerationPlugin, IGroupsPlugin, IGroupIntrospection, IUserEnumerationPlugin, IPropertiesPlugin]
 classImplements(MultiPlugin, *implementedInterfaces)

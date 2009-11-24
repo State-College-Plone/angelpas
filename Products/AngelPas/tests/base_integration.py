@@ -3,14 +3,16 @@
 from Products.PloneTestCase import PloneTestCase
 from Products.CMFCore.utils import getToolByName
 from Products.AngelPas.plugin import MultiPlugin, implementedInterfaces
-from Products.AngelPas.tests.base import plugin_id, test_sections
+from Products.AngelPas.tests.base import plugin_id, test_sections, monkeypatch, unmonkeypatch
 
 PloneTestCase.installProduct('AngelPas')
 PloneTestCase.setupPloneSite(products=['AngelPas'])
 
 
-class AngelIntegrationTest(PloneTestCase.PloneTestCase):
+class IntegrationTest(PloneTestCase.PloneTestCase):
     def afterSetUp(self):
+        monkeypatch(MultiPlugin)
+
         # Install an AngelPas plugin:
         acl_users = self._acl_users
         constructors = acl_users.manage_addProduct['AngelPas']  # http://wiki.zope.org/zope2/ObjectManager
@@ -23,6 +25,9 @@ class AngelIntegrationTest(PloneTestCase.PloneTestCase):
         
         # Configure it:
         self._plugin._config['sections'] = test_sections
+    
+    def afterTearDown(self):
+        unmonkeypatch(MultiPlugin)
     
     @property
     def _acl_users(self):

@@ -1,10 +1,10 @@
 """Unit tests for group enumeration plugin"""
 
 from Products.AngelPas.plugin import MultiPlugin
-from Products.AngelPas.tests.base import AngelUnitTest, plugin_id
+from Products.AngelPas.tests.base import MockNetworkingUnitTest, plugin_id
 
 
-class TestEnumeration(AngelUnitTest):
+class TestEnumeration(MockNetworkingUnitTest):
     def test_find_all(self):
         all_groups = self._plugin.enumerateGroups()
         self.failUnless(len(all_groups) > 0)

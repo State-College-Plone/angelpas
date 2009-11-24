@@ -2,10 +2,10 @@
 
 from Products.AngelPas.plugin import MultiPlugin
 from Products.AngelPas.tests.base import plugin_id
-from Products.AngelPas.tests.base_integration import AngelIntegrationTest
+from Products.AngelPas.tests.base_integration import IntegrationTest
 
 
-class TestEnumeration(AngelIntegrationTest):
+class TestEnumeration(IntegrationTest):
 # Has an infinite loop:
 #     def test_exact_match_by_id(self):
 #         self.failUnlessEqual(self._plugin.enumerateUsers(login='alh245', exact_match=True), ({'id': 'alh245', 'login': 'alh245', 'pluginid': plugin_id},))
