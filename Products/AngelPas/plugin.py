@@ -53,9 +53,8 @@ class MultiPlugin(BasePlugin):
         plugin_id = self.getId()
         group_infos = [{'id': gid, 'pluginid': plugin_id} for gid in group_ids]
         
-        # Sort, if requested:
-        if sort_by == 'id':
-            group_infos.sort(key=lambda x: x['id'])
+        # Sort. (We always sort. We explicitly support sorting by ID, but nothing says we can't sort on it when it's not requested, too. This makes the Groups tab of the Users & Groups control panel look nicer.)
+        group_infos.sort(key=lambda x: x['id'])
         
         # Truncate, if requested:
         if max_results is not None:
