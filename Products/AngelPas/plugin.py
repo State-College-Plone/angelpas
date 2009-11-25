@@ -18,6 +18,13 @@ from Products.PluggableAuthService.permissions import ManageUsers
 # from Products.AngelPas.tests.mocks import _roster_xml as mock_roster_xml
 from Products.AngelPas.utils import www_directory
 
+# Constants describing user rights within a section:
+_rights_map = {
+        '32': 'Instructors',
+        '16': 'Writers',
+        '2': 'Students'
+    }
+
 
 class MultiPlugin(BasePlugin):
     security = ClassSecurityInfo()
@@ -164,14 +171,8 @@ class MultiPlugin(BasePlugin):
         This hierarchy isn't exposed to PAS, since roles assigned to supergroups don't filter down to the members of subgroups as of Plone 3.3rc4. Instead, we flatten everything out, telling PAS that a member of a course section's Instructors group is also a member of the course section's general group, for example.
         
         Example:
-        
-            {'Philsophy 101 Section 1':
-                [],
-             'Philsophy 101 Section 1 Team A':
-                ['Philsophy 101 Section 1'],
-             'Philsophy 101 Section 1 Instructors':
-                ['Philsophy 101 Section 1']
-            }
+            
+            set(['Philsophy 101 Section 1', 'Philsophy 101 Section 1: Team A', 'Philsophy 101 Section 1: Instructors'])
         
         """
         return self._angel_data[1]
@@ -201,41 +202,53 @@ class MultiPlugin(BasePlugin):
         
         See _users() and _groups() docstrings for details of each.
         """
-        def group_title_from_tree(tree):
+        def section_title_from_tree(tree):
             return tree.findtext('.//roster/course_title')
         
         users = {}
-        groups = {}
+        groups = set()
         for s in self._config['sections']:
             tree = ElementTree.fromstring(self._roster_xml(s))  # may raise xml.parsers.expat.ExpatError
             
             # Add to groups:
-            group_title = group_title_from_tree(tree)
-            groups[group_title] = []
+            section_title = section_title_from_tree(tree)
+            groups.add(section_title)
             
             for member in tree.getiterator('member'):
                 # Add this group to the member's user info record, also filling out member info like full name as we go:
                 user_id = member.findtext('user_id').lower()
                 fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
                 u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
-                u['groups'].add(group_title)
+                u['groups'].add(section_title)
                 if not u['fullname']:
                     u['fullname'] = fullname
+                
+                # Put the person in the Instructors, Writers, or Students groups if appropriate:
+                rights = member.findtext('course_rights')  # They're not admitting these are bit fields, so we won't treat them as such.
+                addendum = _rights_map.get(rights)
+                ## First, note that this new group exists and is a subgroup of the section:
+                if addendum:
+                    group_title = '%s: %s' % (section_title, addendum)
+                    groups.add(group_title)
+                    #groups.setdefault(group_title, set()).add(section_title)
+                ## Then, note the user belongs to this group:
+                users[user_id]['groups'].add(group_title)
+                    
         return users, groups
 
     ## ZMI crap: ############################
     
     def __init__(self, id, title=None):
         BasePlugin.__init__(self)
-
+        
         self._setId(id)
         self.title = title
         self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': ['001', '002', '113'], 'email_domain': 'psu.edu'})
-
+    
     # A method to return the configuration page:
     security.declareProtected(ManageUsers, 'manage_config')
     manage_config = PageTemplateFile('config.pt', www_directory)
-
+    
     # Add a tab that calls that method:
     manage_options = ({'label': 'Options',
                        'action': 'manage_config'},) + BasePlugin.manage_options

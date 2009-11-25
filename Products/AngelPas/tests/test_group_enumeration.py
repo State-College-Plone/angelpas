@@ -23,13 +23,13 @@ class TestEnumeration(MockNetworkingUnitTest):
     
     def test_inexact_match_by_id(self):
         # Testing sorting at the same time, while a teensy bit dirty, lets us compare tuples without having to sort them ourselves.
-        self.failUnlessEqual(self._plugin.enumerateGroups(id='Course', sort_by='id'), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 2', 'pluginid': plugin_id}))
+        self.failUnlessEqual(self._plugin.enumerateGroups(id='Demo Course 1', sort_by='id'), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 1: Instructors', 'pluginid': plugin_id}))
     
     def test_inexact_match_by_title(self):
-        self.failUnlessEqual(self._plugin.enumerateGroups(title='Course', sort_by='id'), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 2', 'pluginid': plugin_id}))
+        self.failUnlessEqual(self._plugin.enumerateGroups(title='Demo Course 1', sort_by='id'), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 1: Instructors', 'pluginid': plugin_id}))
     
     def test_max_results(self):
-        self.failUnlessEqual(self._plugin.enumerateGroups(title='e', sort_by='id', max_results=2), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 2', 'pluginid': plugin_id}))
+        self.failUnlessEqual(self._plugin.enumerateGroups(title='Demo Course', sort_by='id', max_results=2), ({'id': 'Demo Course 1', 'pluginid': plugin_id}, {'id': 'Demo Course 1: Instructors', 'pluginid': plugin_id}))
 
 
 def test_suite():
