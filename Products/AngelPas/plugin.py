@@ -149,7 +149,9 @@ class MultiPlugin(BasePlugin):
         Example:
             
             {'fsmith':
-                {'groups': set(['Edison Services Demo Course', 'Some Other Demo Course'])}
+                {'groups': set(['Edison Services Demo Course', 'Some Other Demo Course']),
+                 'fullname': 'Francis Wimbledoofer Smith'  # optional
+                }
             }
         
         """
@@ -157,11 +159,19 @@ class MultiPlugin(BasePlugin):
     
     @property
     def _groups(self):
-        """Return an iterable of group titles (which are used as group IDs).
+        """Return a map of group titles (which are used as group IDs) to lists of titles of groups they belong to.
+        
+        This hierarchy isn't exposed to PAS, since roles assigned to supergroups don't filter down to the members of subgroups as of Plone 3.3rc4. Instead, we flatten everything out, telling PAS that a member of a course section's Instructors group is also a member of the course section's general group, for example.
         
         Example:
         
-            set(['Edison Services Demo Course', 'Edison Services Demo Course: Instructors'])
+            {'Philsophy 101 Section 1':
+                [],
+             'Philsophy 101 Section 1 Team A':
+                ['Philsophy 101 Section 1'],
+             'Philsophy 101 Section 1 Instructors':
+                ['Philsophy 101 Section 1']
+            }
         
         """
         return self._angel_data[1]
@@ -195,13 +205,13 @@ class MultiPlugin(BasePlugin):
             return tree.findtext('.//roster/course_title')
         
         users = {}
-        groups = set()
+        groups = {}
         for s in self._config['sections']:
             tree = ElementTree.fromstring(self._roster_xml(s))  # may raise xml.parsers.expat.ExpatError
             
             # Add to groups:
             group_title = group_title_from_tree(tree)
-            groups.add(group_title)
+            groups[group_title] = []
             
             for member in tree.getiterator('member'):
                 # Add this group to the member's user info record, also filling out member info like full name as we go:

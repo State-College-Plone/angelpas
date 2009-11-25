@@ -18,7 +18,7 @@ class TestXml(MockNetworkingUnitTest):
 
     def test_groups(self):
         g = self._plugin._groups
-        self.failUnlessEqual(self._plugin._groups, set(['Demo Course 1', 'Demo Course 2', 'Funny-titled 3']))
+        self.failUnlessEqual(self._plugin._groups, {'Demo Course 1': [], 'Demo Course 2': [], 'Funny-titled 3': []})
 
 
 def test_suite():
