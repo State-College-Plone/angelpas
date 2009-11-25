@@ -226,13 +226,19 @@ class MultiPlugin(BasePlugin):
                 # Put the person in the Instructors, Writers, or Students groups if appropriate:
                 rights = member.findtext('course_rights')  # They're not admitting these are bit fields, so we won't treat them as such.
                 addendum = _rights_map.get(rights)
-                ## First, note that this new group exists and is a subgroup of the section:
+                ## First, note that this new group exists:
                 if addendum:
                     group_title = '%s: %s' % (section_title, addendum)
                     groups.add(group_title)
                     #groups.setdefault(group_title, set()).add(section_title)
                 ## Then, note the user belongs to this group:
                 users[user_id]['groups'].add(group_title)
+                
+                for team in member.getiterator('team'):
+                    if team.text:
+                        group_title = '%s: %s' % (section_title, team.text)
+                        groups.add(group_title)
+                        users[user_id]['groups'].add(group_title)
                     
         return users, groups
 
