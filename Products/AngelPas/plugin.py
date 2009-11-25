@@ -1,5 +1,6 @@
 import logging
 from time import time
+from urllib import urlopen, urlencode
 
 from persistent.dict import PersistentDict
 from elementtree import ElementTree
@@ -13,7 +14,9 @@ from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPl
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
-from Products.AngelPas.utils import www_directory, tests_directory
+
+# from Products.AngelPas.tests.mocks import _roster_xml as mock_roster_xml
+from Products.AngelPas.utils import www_directory
 
 
 class MultiPlugin(BasePlugin):
@@ -166,8 +169,20 @@ class MultiPlugin(BasePlugin):
     security.declarePrivate('_roster_xml')
     def _roster_xml(self, section_id):
         """Return the roster XML of the given section."""
-        # TODO: Call Angel API for roster xml. Get the address from self._config.
-        raise NotImplementedError
+        # return mock_roster_xml(self, section_id)
+        config = self._config
+        query = urlencode({
+                'APIUSER': config['username'],
+                'APIPWD': config['password'],
+                'STRCOURSE_ID': section_id
+            })
+        try:
+            f = urlopen('%s?APIACTION=PSU_TEAMLISTXML2&%s' % (config['url'], query))
+            ret = f.read()
+        finally:
+            f.close()
+        # TODO: handle errors
+        return ret
     
     @property
     @ram.cache(lambda *args: time() // (60 * 60))
