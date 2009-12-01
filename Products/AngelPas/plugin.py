@@ -44,9 +44,13 @@ class MultiPlugin(BasePlugin):
             if title_or_id and title_or_id in self._groups:
                 group_ids.append(title_or_id)
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
+            if title is not None:
+                title_lower = title.lower()
+            if id is not None:
+                id_lower = id.lower()
             for each_group in self._groups:
                 each_group_lower = each_group.lower()
-                if (id is None and title is None) or (id is not None and id.lower() in each_group_lower) or (title is not None and title.lower() in each_group_lower):  # TODO: Stop recomputing .lower().
+                if (id is None and title is None) or (id is not None and id_lower in each_group_lower) or (title is not None and title_lower in each_group_lower):
                     group_ids.append(each_group)
         
         # For each gathered group ID, flesh out a group info record:
@@ -77,13 +81,17 @@ class MultiPlugin(BasePlugin):
                 if id in self._users:  # TODO: IHNI if this block makes sense.
                     user_ids.add((id, id))
         else:  # Do case-insensitive containment searches. Searching on '' returns everything.
+            if login is not None:
+                login_lower = login.lower()
+            if id is not None:
+                id_lower = id.lower()
+            if fullname is not None:
+                fullname_lower = fullname.lower()
             for k, user_info in self._users.iteritems():  # TODO: Pretty permissive. Should we be searching against logins AND IDs? We might also optimize to avoid redundant tests of None-ship.
                 k_lower = k.lower()
-                if fullname is not None:
-                    fullname_lower = fullname.lower()
                 if (id is None and login is None and fullname is None) or \
-                   (id is not None and id.lower() in k_lower) or \
-                   (login is not None and login.lower() in k_lower) or \
+                   (id is not None and id_lower in k_lower) or \
+                   (login is not None and login_lower in k_lower) or \
                    (fullname is not None and fullname_lower in user_info['fullname'].lower()):
                     user_ids.add((k, k))
         
@@ -191,7 +199,7 @@ class MultiPlugin(BasePlugin):
             ret = f.read()
         finally:
             f.close()
-        # TODO: handle errors
+        # TODO: handle errors (looking for <success> tag or whatever). Should we explode in the user's face? Log and try to return what we had before (if this isn't the first fetch)?
         return ret
     
     @property
@@ -200,6 +208,7 @@ class MultiPlugin(BasePlugin):
         """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
         
         See _users() and _groups() docstrings for details of each.
+        
         """
         def section_title_from_tree(tree):
             return tree.findtext('.//roster/course_title')
@@ -233,6 +242,7 @@ class MultiPlugin(BasePlugin):
                 ## Then, note the user belongs to this group:
                 users[user_id]['groups'].add(group_title)
                 
+                # Put the person in the right team groups:
                 for team in member.getiterator('team'):
                     if team.text:
                         group_title = '%s: %s' % (section_title, team.text)
