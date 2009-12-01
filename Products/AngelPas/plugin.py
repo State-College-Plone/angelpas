@@ -6,7 +6,6 @@ from persistent.dict import PersistentDict
 from elementtree import ElementTree
 from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
-from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PlonePAS.interfaces.group import IGroupIntrospection
 import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
@@ -14,8 +13,9 @@ from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPl
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
+from xml.parsers.expat import ExpatError
 
-# from Products.AngelPas.tests.mocks import _roster_xml as mock_roster_xml
+from Products.AngelPas.tests.mocks import _roster_xml as mock_roster_xml
 from Products.AngelPas.utils import www_directory
 
 # Constants describing user rights within a section:
@@ -24,6 +24,14 @@ _rights_map = {
         '16': 'Writers',
         '2': 'Students'
     }
+
+logger = logging.getLogger('Products.AngelPas')
+
+
+class AngelDataError(Exception):
+    def __init__(self, msg):
+        Exception.__init__(self)
+        self.msg = msg
 
 
 class MultiPlugin(BasePlugin):
@@ -173,21 +181,23 @@ class MultiPlugin(BasePlugin):
     
     @property
     def _groups(self):
-        """Return a map of group titles (which are used as group IDs) to lists of titles of groups they belong to.
+        """Return a set of group titles (which are used as group IDs).
         
-        This hierarchy isn't exposed to PAS, since roles assigned to supergroups don't filter down to the members of subgroups as of Plone 3.3rc4. Instead, we flatten everything out, telling PAS that a member of a course section's Instructors group is also a member of the course section's general group, for example.
+        The logical group hierarchy isn't exposed to PAS, since roles assigned to supergroups don't filter down to the members of subgroups as of Plone 3.3rc4. Instead, we flatten everything out, telling PAS that a member of a course section's Instructors group is also a member of the course section's general group, for example.
         
         Example:
             
-            set(['Philsophy 101 Section 1', 'Philsophy 101 Section 1: Team A', 'Philsophy 101 Section 1: Instructors'])
+            set(['Philsophy 101 Section 1',
+                 'Philsophy 101 Section 1: Team A',
+                 'Philsophy 101 Section 1: Instructors'])
         
         """
         return self._angel_data[1]
     
     security.declarePrivate('_roster_xml')
     def _roster_xml(self, section_id):
-        """Return the roster XML of the given section."""
-        # return mock_roster_xml(self, section_id)
+        """Return the raw XML of the given section, raising an AngelDataError on error."""
+        #return mock_roster_xml(self, section_id)
         config = self._config
         query = urlencode({
                 'APIUSER': config['username'],
@@ -195,61 +205,102 @@ class MultiPlugin(BasePlugin):
                 'STRCOURSE_ID': section_id
             })
         try:
-            f = urlopen('%s?APIACTION=PSU_TEAMLISTXML2&%s' % (config['url'], query))
-            ret = f.read()
-        finally:
+            try:
+                f = urlopen('%s?APIACTION=PSU_TEAMLISTXML2&%s' % (config['url'], query))
+                xml = f.read()
+            except IOError, e:
+                raise AngelDataError('An error occurred while communicating with the ANGEL server: %s' % e.strerror)
+        finally:  # stupid Python 2.4 and its lack of try...except...finally
             f.close()
-        # TODO: handle errors (looking for <success> tag or whatever). Should we explode in the user's face? Log and try to return what we had before (if this isn't the first fetch)?
-        return ret
+        return xml
+    
+    security.declarePrivate('_roster_tree')
+    def _roster_tree(self, xml):
+        """Return the parsed XML tree given raw XML from an ANGEL API call, raising an AngelDataError on error."""
+        # Parse:
+        try:
+            tree = ElementTree.fromstring(xml)
+        except ExpatError:
+            raise AngelDataError('The roster request returned a non-XML response:\n%s' % xml)
+        
+        # Test for API-level success:
+        success_node = tree.find('./success')
+        if not success_node:
+            error = tree.findtext('./error', None)
+            if error:
+                raise AngelDataError('ANGEL roster request returned an error: %s' % error)
+            else:
+                raise AngelDataError('ANGEL roster request failed but returned no error message.')
+        
+        return tree
     
     @property
-    @ram.cache(lambda *args: time() // (60 * 60))
     def _angel_data(self):
-        """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
+        """Return the (possibly cached) user and group info from ANGEL as a 2-item tuple: (users, groups).
         
         See _users() and _groups() docstrings for details of each.
         
-        """
-        def section_title_from_tree(tree):
-            return tree.findtext('.//roster/course_title')
+        On failure, return an older cached value and log the failure at level ERROR. If there is no cached value, return empty data so at least people can log into the site using other PAS plugins.
         
-        users = {}
-        groups = set()
-        for s in self._config['sections']:
-            tree = ElementTree.fromstring(self._roster_xml(s))  # may raise xml.parsers.expat.ExpatError
+        """
+        def get_data():
+            """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
             
-            # Add to groups:
-            section_title = section_title_from_tree(tree)
-            groups.add(section_title)
+            Throw AngelDataError on failure.
             
-            for member in tree.getiterator('member'):
-                # Add this group to the member's user info record, also filling out member info like full name as we go:
-                user_id = member.findtext('user_id').lower()
-                fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
-                u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
-                u['groups'].add(section_title)
-                if not u['fullname']:
-                    u['fullname'] = fullname
+            """
+            users = {}
+            groups = set()
+            for s in self._config['sections']:
+                tree = self._roster_tree(self._roster_xml(s))
                 
-                # Put the person in the Instructors, Writers, or Students groups if appropriate:
-                rights = member.findtext('course_rights')  # They're not admitting these are bit fields, so we won't treat them as such.
-                addendum = _rights_map.get(rights)
-                ## First, note that this new group exists:
-                if addendum:
-                    group_title = '%s: %s' % (section_title, addendum)
-                    groups.add(group_title)
-                    #groups.setdefault(group_title, set()).add(section_title)
-                ## Then, note the user belongs to this group:
-                users[user_id]['groups'].add(group_title)
+                # Add to groups:
+                section_title = tree.findtext('.//roster/course_title')
+                groups.add(section_title)
                 
-                # Put the person in the right team groups:
-                for team in member.getiterator('team'):
-                    if team.text:
-                        group_title = '%s: %s' % (section_title, team.text)
-                        groups.add(group_title)
-                        users[user_id]['groups'].add(group_title)
+                for member in tree.getiterator('member'):
+                    # Add this group to the member's user info record, also filling out member info like full name as we go:
+                    user_id = member.findtext('user_id').lower()
+                    fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
+                    u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
+                    u['groups'].add(section_title)
+                    if not u['fullname']:
+                        u['fullname'] = fullname
                     
-        return users, groups
+                    # Put the person in the Instructors, Writers, or Students groups if appropriate:
+                    rights = member.findtext('course_rights')  # They're not admitting these are bit fields, so we won't treat them as such.
+                    addendum = _rights_map.get(rights)
+                    ## First, note that this new group exists:
+                    if addendum:
+                        group_title = '%s: %s' % (section_title, addendum)
+                        groups.add(group_title)
+                        #groups.setdefault(group_title, set()).add(section_title)
+                    ## Then, note the user belongs to this group:
+                    users[user_id]['groups'].add(group_title)
+                    
+                    # Put the person in the right team groups:
+                    for team in member.getiterator('team'):
+                        if team.text:
+                            group_title = '%s: %s' % (section_title, team.text)
+                            groups.add(group_title)
+                            users[user_id]['groups'].add(group_title)
+            
+            return users, groups
+        
+        # Restore volatile attrs:
+        if not hasattr(self, '_v_users'):
+            self._v_users, self._v_groups = {}, set()
+            self._v_fetch_time = 0  # the last time data was fetched from ANGEL
+        
+        now = time()
+        if now - self._v_fetch_time > 3600:  # 1 hour
+            try:
+                self._v_users, self._v_groups = get_data()
+            except AngelDataError, e:
+                logger.error(e.msg)
+            else:
+                self._v_fetch_time = now
+        return self._v_users, self._v_groups
 
     ## ZMI crap: ############################
     
