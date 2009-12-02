@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 import os
 
-version = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'Products', 'AngelPas', 'version.txt')).read().strip()
+_product_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'Products', 'AngelPas')
+version = open(os.path.join(_product_folder, 'version.txt')).read().strip()
 if version.endswith('dev'):
     version = version[:-3]
 
@@ -9,7 +10,7 @@ setup(
     name='Products.AngelPas',
     version=version,
     description="AngelPas lets you treat ANGEL-dwelling classes as Plone groups.",
-    long_description=open('README.txt').read(),
+    long_description=open(os.path.join(_product_folder, 'README.txt')).read(),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: Plone",
