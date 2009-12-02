@@ -6,6 +6,7 @@ from persistent.dict import PersistentDict
 from elementtree import ElementTree
 from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
+from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PlonePAS.interfaces.group import IGroupIntrospection
 import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
@@ -240,9 +241,11 @@ class MultiPlugin(BasePlugin):
         
         See _users() and _groups() docstrings for details of each.
         
-        On failure, return an older cached value and log the failure at level ERROR. If there is no cached value, return empty data so at least people can log into the site using other PAS plugins.
+        On failure, return empty info (so at least people can log into the site using other PAS plugins) and log the failure at level ERROR.
         
         """
+        
+        @ram.cache(lambda *args: (self._config['url'], self._config['sections'], time() // (60 * 60)))
         def get_data():
             """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
             
@@ -287,20 +290,12 @@ class MultiPlugin(BasePlugin):
             
             return users, groups
         
-        # Restore volatile attrs:
-        if not hasattr(self, '_v_users'):
-            self._v_users, self._v_groups = {}, set()
-            self._v_fetch_time = 0  # the last time data was fetched from ANGEL
-        
-        now = time()
-        if now - self._v_fetch_time > 3600:  # 1 hour
-            try:
-                self._v_users, self._v_groups = get_data()
-            except AngelDataError, e:
-                logger.error(e.msg)
-            else:
-                self._v_fetch_time = now
-        return self._v_users, self._v_groups
+        try:
+            users, groups = get_data()
+        except AngelDataError, e:
+            users, groups = {}, set()
+            logger.error(e.msg)
+        return users, groups
 
     ## ZMI crap: ############################
     
