@@ -302,10 +302,9 @@ class MultiPlugin(BasePlugin):
     
     def __init__(self, id, title=None):
         BasePlugin.__init__(self)
-        
         self._setId(id)
         self.title = title
-        self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': ['001', '002', '113'], 'email_domain': 'psu.edu'})
+        self._config = PersistentDict({'url': 'https://cmsdev1.ais.psu.edu/api/default.asp', 'username': '', 'password': '', 'sections': ['SP200809-UP-ADMIN-Kolbe_Test-001'], 'email_domain': 'psu.edu'})
     
     # A method to return the configuration page:
     security.declareProtected(ManageUsers, 'manage_config')
