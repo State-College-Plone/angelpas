@@ -4,8 +4,8 @@ AngelPas
 Description
 -----------
 
-AngelPas integrates ANGEL-dwelling course sections with Plone's user-and-group
-machinery.
+AngelPas integrates course sections from the ANGEL learning management system
+with Plone's user-and-group machinery.
 
 Each section gives rise to several groups:
 
@@ -40,7 +40,8 @@ Installation
 Installation is like that of any other PAS plugin. The only gotcha is that
 AngelPas's Properties plugin must come before Plone's mutable_properties plugin.
 
-1. Install AngelPas, for example by dropping it in your *products* folder.
+1. Install AngelPas, for example by dropping it in your *products* folder or
+   adding *Products.AngelPas* to your buildout configuration.
 
 2. In the *acl_users* folder within your Plone site, add an *AngelPas Plugin*.
 

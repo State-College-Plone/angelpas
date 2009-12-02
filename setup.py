@@ -9,7 +9,7 @@ if version.endswith('dev'):
 setup(
     name='Products.AngelPas',
     version=version,
-    description="AngelPas lets you treat ANGEL-dwelling classes as Plone groups.",
+    description="AngelPas integrates ANGEL-dwelling course sections with Plone's user-and-group machinery.",
     long_description=open(os.path.join(_product_folder, 'README.txt')).read(),
     classifiers=[
         "Development Status :: 4 - Beta",
