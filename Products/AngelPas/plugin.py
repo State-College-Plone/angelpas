@@ -231,7 +231,7 @@ class MultiPlugin(BasePlugin):
             if error:
                 raise AngelDataError('ANGEL roster request returned an error: %s' % error)
             else:
-                raise AngelDataError('ANGEL roster request failed but returned no error message.')
+                raise AngelDataError('ANGEL roster request failed but returned no error message. Is the API URL correct?')
         
         return tree
     
@@ -265,6 +265,8 @@ class MultiPlugin(BasePlugin):
                     # Add this group to the member's user info record, also filling out member info like full name as we go:
                     user_id = member.findtext('user_id').lower()
                     fullname = ' '.join([y for y in [member.findtext(x) for x in ('fname', 'mname', 'lname')] if y])
+                    if fullname.isupper():  # Penn State's systems return an ugly all-caps name. Title-case it.
+                        fullname = fullname.title()
                     u = users.setdefault(user_id, {'groups': set(), 'fullname': fullname})
                     u['groups'].add(section_title)
                     if not u['fullname']:
@@ -277,9 +279,8 @@ class MultiPlugin(BasePlugin):
                     if addendum:
                         group_title = '%s: %s' % (section_title, addendum)
                         groups.add(group_title)
-                        #groups.setdefault(group_title, set()).add(section_title)
-                    ## Then, note the user belongs to this group:
-                    users[user_id]['groups'].add(group_title)
+                        ## Then, note the user belongs to this group:
+                        users[user_id]['groups'].add(group_title)
                     
                     # Put the person in the right team groups:
                     for team in member.getiterator('team'):
