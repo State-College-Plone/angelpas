@@ -83,6 +83,17 @@ An error like this...
 ...can indicate, at Penn State anyway, that your IP address is not allowed to
 access ANGEL. Contact the ANGEL administrators.
 
+Development
+-----------
+
+In case you'd like to work on AngelPas and your ANGEL installation is as
+locked-down as ours is, you can mock out communication with the ANGEL server by
+uncommenting this line in plugin.py:
+
+    #return mock_roster_xml(self, section_id)
+
+AngelPas will then use its test data set, which lives in tests/xml.
+
 
 Authors
 -------
@@ -96,7 +107,7 @@ Support
 -------
 
 Contact the WebLion team at support@weblion.psu.edu or join our IRC channel,
-#weblion on irc.freenode.net. The `WebLion wiki <http://weblion.psu.edu/trac/weblion>`_ is full of good stuff.
+`#weblion on irc.freenode.net <http://weblion.psu.edu/documentation/chat/>'_. The `WebLion wiki <http://weblion.psu.edu/trac/weblion>`_ is full of good stuff.
 
 Please report bugs using the
 `WebLion issue tracker <https://weblion.psu.edu/trac/weblion/newticket?component=AngelPas&version=1.0>`_.
