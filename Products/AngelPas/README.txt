@@ -58,8 +58,8 @@ AngelPas's Properties plugin must come before Plone's mutable_properties plugin.
    empty string.
 
 
-Use
----
+Troubleshooting
+---------------
 
 When AngelPas has trouble communicating with the ANGEL server, it logs an error
 at the level ERROR. For example...
@@ -69,19 +69,14 @@ at the level ERROR. For example...
 
 It then allows Plone to continue without presenting an error to the user. This
 at least allows the site to continue functioning at a reduced level while ANGEL
-is unavailable. It is advisable to monitor your logs to catch ANGEL problems
+is unavailable. It is advisable to monitor your logs to catch ANGEL problems,
 especially after changing AngelPas settings.
 
+One possible cause for the above error, at least at Penn State, is that the IP
+address of your server is not allowed to access ANGEL. One usually has to
+contact the ANGEL administrators to get the IP address approved and to get a
+username and password.
 
-Troubleshooting
----------------
-
-An error like this...
-
-    ERROR Products.AngelPas ANGEL roster request returned an error: Not authenticated
-
-...can indicate, at Penn State anyway, that your IP address is not allowed to
-access ANGEL. Contact the ANGEL administrators.
 
 Development
 -----------
