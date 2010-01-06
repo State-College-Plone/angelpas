@@ -205,14 +205,16 @@ class MultiPlugin(BasePlugin):
                 'APIPWD': config['password'],
                 'STRCOURSE_ID': section_id
             })
+        f = None  # Avoid an undefined symbol in f.close().
         try:
             try:
                 f = urlopen('%s?APIACTION=PSU_TEAMLISTXML2&%s' % (config['url'], query))
                 xml = f.read()
             except IOError, e:
                 raise AngelDataError('An error occurred while communicating with the ANGEL server: %s' % e.strerror)
-        finally:  # stupid Python 2.4 and its lack of try...except...finally
-            f.close()
+        finally:  # Python 2.4 doesn't have try...except...finally.
+            if f:
+                f.close()
         return xml
     
     security.declarePrivate('_roster_tree')
