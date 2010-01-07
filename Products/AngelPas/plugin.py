@@ -233,7 +233,7 @@ class MultiPlugin(BasePlugin):
             if error:
                 raise AngelDataError('ANGEL roster request returned an error: %s' % error)
             else:
-                raise AngelDataError('ANGEL roster request failed but returned no error message. Is the API URL correct?')
+                raise AngelDataError('ANGEL roster request failed but returned no discernable error message. Is the API URL correct?')
         
         return tree
     
@@ -247,7 +247,7 @@ class MultiPlugin(BasePlugin):
         
         """
         
-        @ram.cache(lambda *args: (self._config['url'], self._config['sections'], time() // (60 * 60)))
+        @ram.cache(lambda *args: (self._config['url'], self._config['sections'], time() // (24 * 60 * 60)))
         def get_data():
             """Return the user and group info from ANGEL as a 2-item tuple: (users, groups).
             
