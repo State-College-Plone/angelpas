@@ -11,7 +11,7 @@ from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PlonePAS.interfaces.group import IGroupIntrospection
 import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
 from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin, IUserEnumerationPlugin, IPropertiesPlugin
-from Products.PluggableAuthService.utils import classImplements
+from Products.PluggableAuthService.utils import classImplements, createKeywords, createViewName
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.permissions import ManageUsers
 from xml.parsers.expat import ExpatError
@@ -83,8 +83,8 @@ class MultiPlugin(BasePlugin):
         if exact_match:  # Should this be case-sensitive?
             if login:
                 if login in self._users:
-                    user = self._getPAS().getUser(login)  # Is this going to call our enumerator and always be True or something? Apparently not in Plone, but see the test_exact_match_by_id test in test_user_enumeration.
-                    user_id = user and user.getId() or login  # If user doesn't exist, it's a user we're dynamically manifesting, so we can assume id == login.
+                    user_info = self._verifyUserElsewhere(login)  # See if the user already exists care of another PAS plugin. If so, the user may have an ID that isn't its login name.
+                    user_id = user_info and user_info['id'] or login  # If user doesn't exist, it's a user we're dynamically manifesting, so we can assume id == login.
                     user_ids.add((user_id, login))
             if id:
                 if id in self._users:  # TODO: IHNI if this block makes sense.
@@ -117,6 +117,36 @@ class MultiPlugin(BasePlugin):
             del user_infos[max_results:]
         
         return tuple(user_infos)
+    
+    security.declarePrivate('_verifyUserElsewhere')
+    def _verifyUserElsewhere(self, login):
+        """Like PAS's _verifyUser, turn a login into an info dict. However, look only in other enumerator plugins, skipping ours so we don't infinitely recurse."""
+        # Ripped off from PAS 1.6.1.
+        pas = self._getPAS()
+        criteria = {'exact_match': True, 'login': login}
+        view_name = createViewName('_verifyUser', login)
+        keywords = createKeywords(**criteria)
+        cached_info = pas.ZCacheable_get(view_name=view_name,
+                                         keywords=keywords,
+                                         default=None)  # somewhat evil, sharing a private(?) cache with PAS. But this runs all the time, and that code hasn't changed forever.
+        if cached_info is not None:
+            return cached_info
+
+        enumerators = pas['plugins'].listPlugins(IUserEnumerationPlugin)
+        for enumerator_id, enumerator in enumerators:
+            if not isinstance(enumerator, self.__class__):  # Skip the AngelPas enumerator so we don't infinitely recurse.
+                try:
+                    info = enumerator.enumerateUsers(**criteria)
+                    if info:
+                        # Put the computed value into the cache
+                        pas.ZCacheable_set(info[0],
+                                           view_name=view_name,
+                                           keywords=keywords)
+                        return info[0]
+                except _SWALLOWABLE_PLUGIN_EXCEPTIONS:
+                    msg = 'UserEnumerationPlugin %s error' % enumerator_id
+                    logger.debug(msg, exc_info=True)
+        return None
     
     # IGroupsPlugin:
     security.declarePrivate('getGroupsForPrincipal')
