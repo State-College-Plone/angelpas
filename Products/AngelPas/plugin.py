@@ -8,7 +8,7 @@ from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
 from plone.memoize import ram
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
-from Products.PlonePAS.plugins.group import PloneGroup
+import Products.PlonePAS.plugins.group as PlonePasGroupPlugin
 from Products.PlonePAS.interfaces.group import IGroupIntrospection
 from Products.PluggableAuthService.interfaces.plugins import IGroupEnumerationPlugin, IGroupsPlugin, IUserEnumerationPlugin, IPropertiesPlugin, IRolesPlugin
 from Products.PluggableAuthService.utils import classImplements, createKeywords, createViewName
@@ -64,7 +64,7 @@ class MultiPlugin(BasePlugin):
         
         # For each gathered group ID, flesh out a group info record:
         plugin_id = self.getId()
-        group_infos = [{'id': gid, 'pluginid': plugin_id} for gid in group_ids]
+        group_infos = [{'id': gid, 'pluginid': plugin_id, 'title': 'Title of %s' % gid} for gid in group_ids]
         
         # Sort. (We always sort. We explicitly support sorting by ID, but nothing says we can't sort on it when it's not requested, too. This makes the Groups tab of the Users & Groups control panel look nicer.)
         group_infos.sort(key=lambda x: x['id'])
@@ -154,50 +154,8 @@ class MultiPlugin(BasePlugin):
         return tuple(self._users.get(principal.getId(), {}).get('groups', set()))
     
     # IGroupIntrospection:
-    # Ripping the next 2 methods off from Products.PlonePAS.plugins.group.GroupManager because Python 2.6 insists that the self passed into unbound methods has the same class as the class they came from. That's not the problem I want to solve today, so this is a temporary kludge.
-    security.declarePrivate('_createGroup')
-    def _createGroup(self, plugins, group_id, name):
-        """ Create group object. For users, this can be done with a
-        plugin, but I don't care to define one for that now. Just uses
-        PloneGroup.  But, the code's still here, just commented out.
-        This method based on PluggableAuthervice._createUser
-        """
-        return PloneGroup(group_id, name).__of__(self)
-
-    security.declarePrivate('_findGroup')
-    def _findGroup(self, plugins, group_id, title=None, request=None):
-        """ group_id -> decorated_group
-        This method based on PluggableAuthService._findGroup
-        """
-
-        view_name = '_findGroup-%s' % group_id
-        keywords = { 'group_id' : group_id
-                   , 'title' : title
-                   }
-
-        group = self._createGroup(plugins, group_id, title)
-
-        propfinders = plugins.listPlugins(IPropertiesPlugin)
-        for propfinder_id, propfinder in propfinders:
-
-            data = propfinder.getPropertiesForUser(group, request)
-            if data:
-                group.addPropertysheet(propfinder_id, data)
-
-        groups = self._getPAS()._getGroupsForPrincipal(group, request
-                                            , plugins=plugins)
-        group._addGroups(groups)
-
-        rolemakers = plugins.listPlugins(IRolesPlugin)
-
-        for rolemaker_id, rolemaker in rolemakers:
-            roles = rolemaker.getRolesForPrincipal(group, request)
-            if roles:
-                group._addRoles(roles)
-
-        group._addRoles(['Authenticated'])
-
-        return group.__of__(self)
+    _findGroup = PlonePasGroupPlugin.GroupManager._findGroup.im_func
+    _createGroup = PlonePasGroupPlugin.GroupManager._createGroup.im_func  # This is here only so _findGroup can call it.
     
     def getGroupById(self, group_id, default=None):
         if group_id in self._groups:
@@ -224,7 +182,7 @@ class MultiPlugin(BasePlugin):
         
         if is_group:
             if login in self._groups:
-                return {'title': login}  # title == id == login. Yuck. See comments under enumerateGroups().
+                return {'title': 'Title of %s from IProperties' % login}  # title == id == login. Yuck. See comments under enumerateGroups().
         else:
             u = self._users.get(login)
             if u:
