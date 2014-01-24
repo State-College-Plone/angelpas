@@ -113,4 +113,3 @@ Version History
 
 1.0b1
     * So it begins. No known bugs but hasn't seen a lot of real-world testing.
-test
