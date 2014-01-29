@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 import os
 
-_product_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'Products', 'AngelPas')
+_product_folder = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), 'Products', 'AngelPas')
 version = open(os.path.join(_product_folder, 'version.txt')).read().strip()
 if version.endswith('dev'):
     version = version[:-3]
@@ -9,7 +10,10 @@ if version.endswith('dev'):
 setup(
     name='Products.AngelPas',
     version=version,
-    description="AngelPas integrates ANGEL-dwelling course sections with Plone's user-and-group machinery.",
+    description=(
+        "AngelPas integrates ANGEL-dwelling course sections with Plone's "
+        "user-and-group machinery."
+    ),
     long_description=open(os.path.join(_product_folder, 'README.txt')).read(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -32,14 +36,18 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
-        # Older versions of the following weren't eggified. Including them as requirements would preclude AngelPas's use with them, when in fact they work.
+        # Older versions of the following weren't eggified. Including them as
+        # requirements would preclude AngelPas's use with them, when in fact
+        #  they work.
         # 'Products.CMFCore',
         # 'Products.PluggableAuthService',
         # 'Zope2'
     ],
     extras_require={
-        # Older versions of Plone weren't eggified. Including them as requirements would preclude AngelPas's use with them, when in fact they work.
-        # 'Plone': ['Plone>=3.1.3']  # Plone-savvy but also works with raw Zope 2
+        # Older versions of Plone weren't eggified. Including them as
+        # requirements would preclude AngelPas's use with them, when in fact
+        # they work.
+        # 'Plone': ['Plone>=3.1.3']  # Plone-savvy but also works with Zope2
     },
     entry_points={}
 )
