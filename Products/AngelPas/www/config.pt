@@ -43,14 +43,11 @@
         </tr>
         <tr valign="top">
             <td align="right">
-                <label for="email_domain">
-                    User email domain<br />
-                    <span class="form-help">(Optional)</span>
-                </label>
+                <label for="email_domain">User email domain</label>
             </td>
             <td>
                 <input type="text" name="email_domain" id="email_domain" size="15" tal:attributes="value config/email_domain" /><br />
-                <span class="form-help">If filled, users' email addresses will be assumed to be login_name@this.domain.</span>
+                <span class="form-help">Optional. If filled, users' email addresses will be assumed to be login_name@this.domain.</span>
             </td>
         </tr>
     </table>

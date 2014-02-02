@@ -4,8 +4,8 @@ AngelPas
 Description
 -----------
 
-AngelPas integrates course sections from the ANGEL learning management system
-with Plone's user-and-group machinery.
+AngelPas integrates ANGEL-dwelling course sections with Plone's user-and-group
+machinery.
 
 Each section gives rise to several groups:
 
@@ -40,8 +40,7 @@ Installation
 Installation is like that of any other PAS plugin. The only gotcha is that
 AngelPas's Properties plugin must come before Plone's mutable_properties plugin.
 
-1. Install AngelPas, for example by dropping it in your *products* folder or
-   adding *Products.AngelPas* to your buildout configuration.
+1. Install AngelPas, for example by dropping it in your *products* folder.
 
 2. In the *acl_users* folder within your Plone site, add an *AngelPas Plugin*.
 
@@ -58,8 +57,8 @@ AngelPas's Properties plugin must come before Plone's mutable_properties plugin.
    empty string.
 
 
-Troubleshooting
----------------
+Use
+---
 
 When AngelPas has trouble communicating with the ANGEL server, it logs an error
 at the level ERROR. For example...
@@ -69,25 +68,19 @@ at the level ERROR. For example...
 
 It then allows Plone to continue without presenting an error to the user. This
 at least allows the site to continue functioning at a reduced level while ANGEL
-is unavailable. It is advisable to monitor your logs to catch ANGEL problems,
+is unavailable. It is advisable to monitor your logs to catch ANGEL problems
 especially after changing AngelPas settings.
 
-One possible cause for the above error, at least at Penn State, is that the IP
-address of your server is not allowed to access ANGEL. One usually has to
-contact the ANGEL administrators to get the IP address approved and to get a
-username and password.
 
+Troubleshooting
+---------------
 
-Development
------------
+An error like this...
 
-In case you'd like to work on AngelPas and your ANGEL installation is as
-locked-down as ours is, you can mock out communication with the ANGEL server by
-uncommenting this line in plugin.py:
+    ERROR Products.AngelPas ANGEL roster request returned an error: Not authenticated
 
-    #return mock_roster_xml(self, section_id)
-
-AngelPas will then use its test data set, which lives in tests/xml.
+...can indicate, at Penn State anyway, that your IP address is not allowed to
+access ANGEL. Contact the ANGEL administrators.
 
 
 Authors
@@ -102,7 +95,7 @@ Support
 -------
 
 Contact the WebLion team at support@weblion.psu.edu or join our IRC channel,
-`#weblion on irc.freenode.net <http://weblion.psu.edu/documentation/chat/>'_. The `WebLion wiki <http://weblion.psu.edu/trac/weblion>`_ is full of good stuff.
+#weblion on irc.freenode.net. The `WebLion wiki <http://weblion.psu.edu/trac/weblion>`_ is full of good stuff.
 
 Please report bugs using the
 `WebLion issue tracker <https://weblion.psu.edu/trac/weblion/newticket?component=AngelPas&version=1.0>`_.
