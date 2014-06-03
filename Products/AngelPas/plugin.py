@@ -329,8 +329,21 @@ class MultiPlugin(BasePlugin):
             users = {}
             groups = set()
             for s in self._config['sections']:
-                tree = self._roster_tree(self._roster_xml(s))
-                
+
+                # an error here should be raised....
+                xml = self._roster_xml(s)
+
+                try:
+                    tree = self._roster_tree(xml)
+                except AngelDataError, e:
+                    # but here...
+                    # don't throw out the whole tree for one bad section id.
+                    # we will still raise AngelDataError if there is an 
+                    # IOError connecting, but just ignore bad section ids
+                    logger.error('AngelPas plugin got bad xml data for section '
+                                 '%s.  Error was: %s' % (s, e.msg))
+                    continue
+
                 # Add to groups:
                 section_title = tree.findtext('.//roster/course_title')
                 groups.add(section_title)
