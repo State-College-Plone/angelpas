@@ -417,7 +417,10 @@ class MultiPlugin(BasePlugin):
     def manage_changeConfig(self, REQUEST=None):
         """Update my configuration based on form data."""
         for f in ['url', 'username', 'password', 'sections', 'email_domain']:
-            self._config[f] = REQUEST.form[f]
+            if f == 'sections':
+                self._config[f] = PersistentList(REQUEST.form[f])
+            else:
+                self._config[f] = REQUEST.form[f]
         return REQUEST.RESPONSE.redirect('%s/manage_config' % self.absolute_url())
 
 
