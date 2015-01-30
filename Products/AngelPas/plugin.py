@@ -77,7 +77,7 @@ class MultiPlugin(BasePlugin):
         return tuple(group_infos)
 
     # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually return users):
-    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, fullname=None, **kw):
+    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, fullname=None, email=None **kw):
         user_ids = set()  # tuples of (user ID, login)
 
         # Build list of user IDs we should return:
@@ -99,7 +99,7 @@ class MultiPlugin(BasePlugin):
                 fullname_lower = fullname.lower()
             for k, user_info in self._users.iteritems():  # TODO: Pretty permissive. Should we be searching against logins AND IDs? We might also optimize to avoid redundant tests of None-ship.
                 k_lower = k.lower()
-                if (id is None and login is None and fullname is None) or \
+                if (id is None and login is None and fullname is None and email is None) or \
                    (id is not None and id_lower in k_lower) or \
                    (login is not None and login_lower in k_lower) or \
                    (fullname is not None and fullname_lower in user_info['fullname'].lower()):
