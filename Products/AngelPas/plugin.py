@@ -76,8 +76,11 @@ class MultiPlugin(BasePlugin):
 
         return tuple(group_infos)
 
-    # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually return users):
-    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, fullname=None, email=None **kw):
+    # IUserEnumerationPlugin (so IGroupIntrospection's methods will actually
+    # return users):
+    def enumerateUsers(self, id=None, login=None, exact_match=False,
+                       sort_by=None, max_results=None,
+                       fullname=None, email=None, **kw):
         user_ids = set()  # tuples of (user ID, login)
 
         # Build list of user IDs we should return:
